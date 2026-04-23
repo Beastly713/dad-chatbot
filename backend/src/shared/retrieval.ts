@@ -16,18 +16,30 @@ export async function makeSupabaseRetriever(
       'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables are not defined',
     );
   }
+
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY is not set');
+  }
+
   const embeddings = new OpenAIEmbeddings({
-    model: 'text-embedding-3-small',
+    apiKey: process.env.OPENROUTER_API_KEY,
+    model: 'openai/text-embedding-3-small',
+    configuration: {
+      baseURL: 'https://openrouter.ai/api/v1',
+    },
   });
+
   const supabaseClient = createClient(
     process.env.SUPABASE_URL ?? '',
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
   );
+
   const vectorStore = new SupabaseVectorStore(embeddings, {
     client: supabaseClient,
     tableName: 'documents',
     queryName: 'match_documents',
   });
+
   return vectorStore.asRetriever({
     k: configuration.k,
     filter: configuration.filterKwargs,
@@ -38,6 +50,7 @@ export async function makeRetriever(
   config: RunnableConfig,
 ): Promise<VectorStoreRetriever> {
   const configuration = ensureBaseConfiguration(config);
+
   switch (configuration.retrieverProvider) {
     case 'supabase':
       return makeSupabaseRetriever(configuration);
