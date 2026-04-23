@@ -21,7 +21,7 @@ export const createServerClient = () => {
     'Content-Type': 'application/json',
   };
 
-  if (process.env.LANGCHAIN_API_KEY) {
+  if (process.env.LANGCHAIN_API_KEY?.trim()) {
     defaultHeaders['X-Api-Key'] = process.env.LANGCHAIN_API_KEY;
   }
 
