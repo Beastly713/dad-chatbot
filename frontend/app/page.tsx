@@ -1,25 +1,34 @@
 'use client';
 
 import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ArrowUp,
+  BookOpen,
+  HeartPulse,
+  Loader2,
+  MessageCircleHeart,
+  Paperclip,
+  ShieldAlert,
+  TriangleAlert,
+} from 'lucide-react';
 
-import { useToast } from '@/hooks/use-toast';
-import { useRef, useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Paperclip, ArrowUp, Loader2 } from 'lucide-react';
 import { ExamplePrompts } from '@/components/example-prompts';
-import { ChatMessage } from '@/components/chat-message';
 import { FilePreview } from '@/components/file-preview';
+import { ChatMessage } from '@/components/chat-message';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 import { client } from '@/lib/langgraph-client';
 import {
-  AgentState,
-  documentType,
   PDFDocument,
   RetrieveDocumentsNodeUpdates,
 } from '@/types/graphTypes';
-import { Card, CardContent } from '@/components/ui/card';
+
 export default function Home() {
-  const { toast } = useToast(); // Add this hook
+  const { toast } = useToast();
+
   const [messages, setMessages] = useState<
     Array<{
       role: 'user' | 'assistant';
@@ -32,20 +41,18 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null); // Track the AbortController
-  const messagesEndRef = useRef<HTMLDivElement>(null); // Add this ref
-  const lastRetrievedDocsRef = useRef<PDFDocument[]>([]); // useRef to store the last retrieved documents
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastRetrievedDocsRef = useRef<PDFDocument[]>([]);
 
   useEffect(() => {
-    // Create a thread when the component mounts
     const initThread = async () => {
-      // Skip if we already have a thread
       if (threadId) return;
 
       try {
         const thread = await client.createThread();
-
         setThreadId(thread.thread_id);
       } catch (error) {
         console.error('Error creating thread:', error);
@@ -58,8 +65,9 @@ export default function Home() {
         });
       }
     };
+
     initThread();
-  }, []);
+  }, [threadId, toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,18 +82,18 @@ export default function Home() {
     }
 
     const userMessage = input.trim();
+
     setMessages((prev) => [
       ...prev,
-      { role: 'user', content: userMessage, sources: undefined }, // Clear sources for new user message
-      { role: 'assistant', content: '', sources: undefined }, // Clear sources for new assistant message
+      { role: 'user', content: userMessage, sources: undefined },
+      { role: 'assistant', content: '', sources: undefined },
     ]);
     setInput('');
     setIsLoading(true);
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-
-    lastRetrievedDocsRef.current = []; // Clear the last retrieved documents
+    lastRetrievedDocsRef.current = [];
 
     try {
       const response = await fetch('/api/chat', {
@@ -121,6 +129,7 @@ export default function Home() {
 
           const sseString = line.slice('data: '.length);
           let sseEvent: any;
+
           try {
             sseEvent = JSON.parse(sseString);
           } catch (err) {
@@ -133,16 +142,17 @@ export default function Home() {
           if (event === 'messages/partial') {
             if (Array.isArray(data)) {
               const lastObj = data[data.length - 1];
+
               if (lastObj?.type === 'ai') {
                 const partialContent = lastObj.content ?? '';
 
-                // Only display if content is a string message
                 if (
                   typeof partialContent === 'string' &&
                   !partialContent.startsWith('{')
                 ) {
                   setMessages((prev) => {
                     const newArr = [...prev];
+
                     if (
                       newArr.length > 0 &&
                       newArr[newArr.length - 1].role === 'assistant'
@@ -167,12 +177,9 @@ export default function Home() {
             ) {
               const retrievedDocs = (data as RetrieveDocumentsNodeUpdates)
                 .retrieveDocuments.documents as PDFDocument[];
-
-              // // Handle documents here
               lastRetrievedDocsRef.current = retrievedDocs;
               console.log('Retrieved documents:', retrievedDocs);
             } else {
-              // Clear the last retrieved documents if it's a direct answer
               lastRetrievedDocsRef.current = [];
             }
           } else {
@@ -189,6 +196,7 @@ export default function Home() {
           (error instanceof Error ? error.message : 'Unknown error'),
         variant: 'destructive',
       });
+
       setMessages((prev) => {
         const newArr = [...prev];
         newArr[newArr.length - 1].content =
@@ -208,6 +216,7 @@ export default function Home() {
     const nonPdfFiles = selectedFiles.filter(
       (file) => file.type !== 'application/pdf',
     );
+
     if (nonPdfFiles.length > 0) {
       toast({
         title: 'Invalid file type',
@@ -218,6 +227,7 @@ export default function Home() {
     }
 
     setIsUploading(true);
+
     try {
       const formData = new FormData();
       selectedFiles.forEach((file) => {
@@ -235,9 +245,12 @@ export default function Home() {
       }
 
       setFiles((prev) => [...prev, ...selectedFiles]);
+
       toast({
-        title: 'Success',
-        description: `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} uploaded successfully`,
+        title: 'Resources added',
+        description: `${selectedFiles.length} document${
+          selectedFiles.length > 1 ? 's' : ''
+        } uploaded successfully`,
         variant: 'default',
       });
     } catch (error) {
@@ -260,45 +273,141 @@ export default function Home() {
   const handleRemoveFile = (fileToRemove: File) => {
     setFiles(files.filter((file) => file !== fileToRemove));
     toast({
-      title: 'File removed',
+      title: 'Document removed',
       description: `${fileToRemove.name} has been removed`,
       variant: 'default',
     });
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 md:p-24 max-w-5xl mx-auto w-full">
-      {messages.length === 0 ? (
-        <>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <p className="font-medium text-muted-foreground max-w-md mx-auto">
-                This ai chatbot is an example template to accompany the book:{' '}
-                <a
-                  href="https://www.oreilly.com/library/view/learning-langchain/9781098167271/"
-                  className="underline hover:text-foreground"
-                >
-                  Learning LangChain (O'Reilly): Building AI and LLM
-                  applications with LangChain and LangGraph
-                </a>
+    <main className="min-h-screen bg-background">
+      <div className="max-w-5xl mx-auto px-4 py-6 md:px-6 md:py-10">
+        <div className="space-y-4 mb-6">
+          <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
+            <div className="space-y-2">
+              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+                Safety-aware support
+              </p>
+              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+                Recovery Support Assistant
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground max-w-2xl">
+                A supportive chat experience for check-ins, grounding,
+                reflection, and document-grounded guidance. This assistant is
+                intended to stay safety-bounded and can reference uploaded
+                support resources, care protocols, and recovery documents.
               </p>
             </div>
-          </div>
-          <ExamplePrompts onPromptSelect={setInput} />
-        </>
-      ) : (
-        <div className="w-full space-y-4 mb-20">
-          {messages.map((message, i) => (
-            <ChatMessage key={i} message={message} />
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-      )}
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background">
-        <div className="max-w-5xl mx-auto space-y-4">
+            <div className="flex gap-2 flex-wrap">
+              <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
+                Check-in
+              </span>
+              <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
+                Grounded support
+              </span>
+              <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
+                Safety planning
+              </span>
+              <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
+                Resource Q&amp;A
+              </span>
+            </div>
+          </div>
+
+          <Card className="rounded-2xl border">
+            <CardContent className="p-4 md:p-5 space-y-3">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="h-5 w-5 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-medium">Safety boundaries</p>
+                  <p className="text-sm text-muted-foreground">
+                    This assistant is for supportive conversation, grounding,
+                    reflection, and document-grounded guidance. It is not a
+                    crisis service, not a substitute for a clinician, and should
+                    not be relied on for emergency or medication decisions.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <TriangleAlert className="h-5 w-5 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  If there is immediate danger, medical emergency, overdose
+                  concern, or risk of self-harm, seek urgent local emergency or
+                  crisis support right away.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {messages.length === 0 ? (
+          <div className="space-y-6 pb-40">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="rounded-2xl">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <MessageCircleHeart className="h-5 w-5" />
+                    <h2 className="font-medium">How I can help</h2>
+                  </div>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li>Supportive check-ins and reflection</li>
+                    <li>Grounding and coping prompts</li>
+                    <li>Structured conversation around warning signs</li>
+                    <li>Grounded answers from uploaded support documents</li>
+                    <li>Safety-minded planning conversations</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <HeartPulse className="h-5 w-5" />
+                    <h2 className="font-medium">What I will not do</h2>
+                  </div>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li>Provide diagnosis or critical medical advice</li>
+                    <li>Provide medication instructions</li>
+                    <li>Give harmful, dangerous, or self-harm-enabling guidance</li>
+                    <li>Act as an autonomous clinical decision-maker</li>
+                    <li>Replace urgent emergency support</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="rounded-2xl">
+              <CardContent className="p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  <h2 className="font-medium">Grounding with documents</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Upload safety plans, recovery notes, crisis protocols, care
+                  instructions, or research summaries to make responses more
+                  grounded and less dependent on free-form generation.
+                </p>
+              </CardContent>
+            </Card>
+
+            <ExamplePrompts onPromptSelect={setInput} />
+          </div>
+        ) : (
+          <div className="w-full space-y-4 pb-40">
+            {messages.map((message, i) => (
+              <ChatMessage key={i} message={message} />
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t">
+        <div className="max-w-5xl mx-auto space-y-3">
           {files.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {files.map((file, index) => (
                 <FilePreview
                   key={`${file.name}-${index}`}
@@ -310,7 +419,7 @@ export default function Home() {
           )}
 
           <form onSubmit={handleSubmit} className="relative">
-            <div className="flex gap-2 border rounded-md overflow-hidden bg-gray-50">
+            <div className="flex gap-2 border rounded-2xl overflow-hidden bg-gray-50">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -319,6 +428,7 @@ export default function Home() {
                 multiple
                 className="hidden"
               />
+
               <Button
                 type="button"
                 variant="ghost"
@@ -335,22 +445,24 @@ export default function Home() {
                   <Paperclip className="h-4 w-4" />
                 )}
               </Button>
+
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={
-                  isUploading ? 'Uploading PDF...' : 'Send a message...'
+                  isUploading
+                    ? 'Uploading support documents...'
+                    : 'Ask for support, reflection, grounding, or document-grounded guidance...'
                 }
                 className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12 bg-transparent"
                 disabled={isUploading || isLoading || !threadId}
               />
+
               <Button
                 type="submit"
                 size="icon"
                 className="rounded-none h-12"
-                disabled={
-                  !input.trim() || isUploading || isLoading || !threadId
-                }
+                disabled={!input.trim() || isUploading || isLoading || !threadId}
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

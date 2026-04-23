@@ -1,19 +1,19 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { Toaster } from "@/components/ui/toaster"
-
-import "./globals.css"
+import type React from 'react';
+import type { Metadata } from 'next';
+import { GeistSans } from 'geist/font/sans';
+import { Toaster } from '@/components/ui/toaster';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "Learning LangChain Book Chatbot Demo",
-  description: "A chatbot demo based on Learning LangChain (O'Reilly)",
-}
+  title: 'Recovery Support Assistant',
+  description:
+    'A safety-aware support chat experience grounded in uploaded support resources, safety plans, and care documents.',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
@@ -22,9 +22,5 @@ export default function RootLayout({
         <Toaster />
       </body>
     </html>
-  )
+  );
 }
-
-
-
-import './globals.css'
