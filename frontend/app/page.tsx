@@ -239,18 +239,31 @@ export default function Home() {
         body: formData,
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to upload files');
       }
 
-      setFiles((prev) => [...prev, ...selectedFiles]);
+      if (!data.threadId) {
+        throw new Error('Upload succeeded but no threadId was returned');
+      }
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      lastRetrievedDocsRef.current = [];
+      setMessages([]);
+      setInput('');
+      setFiles(selectedFiles);
+      setThreadId(data.threadId);
 
       toast({
         title: 'Resources added',
         description: `${selectedFiles.length} document${
           selectedFiles.length > 1 ? 's' : ''
-        } uploaded successfully`,
+        } uploaded successfully. New chats will now be grounded only in this upload.`,
         variant: 'default',
       });
     } catch (error) {
@@ -406,6 +419,11 @@ export default function Home() {
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t">
         <div className="max-w-5xl mx-auto space-y-3">
+          <p className="text-xs text-muted-foreground">
+            The current conversation is grounded in the most recently uploaded
+            document set.
+          </p>
+
           {files.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {files.map((file, index) => (

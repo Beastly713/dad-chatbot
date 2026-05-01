@@ -9,13 +9,10 @@ export async function POST(req: Request) {
     const { message, threadId } = await req.json();
 
     if (!message) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Message is required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      return new NextResponse(JSON.stringify({ error: 'Message is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     if (!threadId) {
@@ -50,19 +47,20 @@ export async function POST(req: Request) {
           config: {
             configurable: {
               ...retrievalAssistantStreamConfig,
+              filterKwargs: {
+                ...(retrievalAssistantStreamConfig.filterKwargs || {}),
+                threadId,
+              },
             },
           },
         },
       );
 
-      // Set up response as a stream
       const encoder = new TextEncoder();
       const customReadable = new ReadableStream({
         async start(controller) {
           try {
-            // Forward each chunk from the graph to the client
             for await (const chunk of stream) {
-              // Only send relevant chunks
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`),
               );
@@ -80,7 +78,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // Return the stream with appropriate headers
       return new Response(customReadable, {
         headers: {
           'Content-Type': 'text/event-stream',
@@ -89,25 +86,17 @@ export async function POST(req: Request) {
         },
       });
     } catch (error) {
-      // Handle streamRun errors
       console.error('Stream initialization error:', error);
-      return new NextResponse(
-        JSON.stringify({ error: 'Internal server error' }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
-    }
-  } catch (error) {
-    // Handle JSON parsing errors
-    console.error('Route error:', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
+      return new NextResponse(JSON.stringify({ error: 'Internal server error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
-      },
-    );
+      });
+    }
+  } catch (error) {
+    console.error('Route error:', error);
+    return new NextResponse(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }

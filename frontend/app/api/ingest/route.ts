@@ -1,4 +1,3 @@
-// app/api/ingest/route.ts
 import { indexConfig } from '@/constants/graphConfigs';
 import { langGraphServerClient } from '@/lib/langgraph-server';
 import { processPDF } from '@/lib/pdf';
@@ -34,7 +33,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
-    // Validate file count
     if (files.length > 5) {
       return NextResponse.json(
         { error: 'Too many files. Maximum 5 files allowed.' },
@@ -42,7 +40,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file types and sizes
     const invalidFiles = files.filter((file) => {
       return (
         !ALLOWED_FILE_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE
@@ -59,15 +56,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process all PDFs into Documents
     const allDocs: Document[] = [];
+
     for (const file of files) {
       try {
         const docs = await processPDF(file);
         allDocs.push(...docs);
       } catch (error: any) {
         console.error(`Error processing file ${file.name}:`, error);
-        // Continue processing other files; errors are logged
       }
     }
 
@@ -78,14 +74,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Run the ingestion graph
+    // Create a fresh thread for this upload batch.
+    // This thread id becomes the active document scope for retrieval.
     const thread = await langGraphServerClient.createThread();
-    const ingestionRun = await langGraphServerClient.client.runs.wait(
+
+    const scopedDocs = allDocs.map(
+      (doc) =>
+        new Document({
+          pageContent: doc.pageContent,
+          metadata: {
+            ...doc.metadata,
+            threadId: thread.thread_id,
+          },
+        }),
+    );
+
+    await langGraphServerClient.client.runs.wait(
       thread.thread_id,
       'ingestion_graph',
       {
         input: {
-          docs: allDocs,
+          docs: scopedDocs,
         },
         config: {
           configurable: {
