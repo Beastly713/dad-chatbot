@@ -1,131 +1,188 @@
-import { StateGraph, START, END } from '@langchain/langgraph';
-import { AgentStateAnnotation } from './state.js';
-import { makeRetriever } from '../shared/retrieval.js';
-import { formatDocs } from './utils.js';
-import { HumanMessage } from '@langchain/core/messages';
-import { z } from 'zod';
-import { RESPONSE_SYSTEM_PROMPT, ROUTER_SYSTEM_PROMPT } from './prompts.js';
-import { RunnableConfig } from '@langchain/core/runnables';
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import { RunnableConfig } from "@langchain/core/runnables";
+import { END, START, StateGraph } from "@langchain/langgraph";
+import { buildKbFilterForPolicy } from "../kb/filters.js";
+import { finalGuard } from "../safety/finalGuard.js";
+import { getPolicyForCategory } from "../safety/policies.js";
+import { getTemplate } from "../safety/templates.js";
+import type { SafetyDebugLog } from "../safety/types.js";
+import { triageMessage } from "../safety/triage.js";
+import { makeRetriever } from "../shared/retrieval.js";
 import {
   AgentConfigurationAnnotation,
   ensureAgentConfiguration,
-} from './configuration.js';
-import { loadChatModel } from '../shared/utils.js';
+} from "./configuration.js";
+import { AgentStateAnnotation } from "./state.js";
+import { buildSafeResponsePrompt } from "./prompts.js";
+import { formatDocs } from "./utils.js";
+import { loadChatModel } from "../shared/utils.js";
 
-async function checkQueryType(
+type GraphRoute = "templateResponder" | "retrieveDocuments";
+
+async function inputTriage(
   state: typeof AgentStateAnnotation.State,
-  config: RunnableConfig,
-): Promise<{
-  route: 'retrieve' | 'direct';
-}> {
-  //schema for routing
-  const schema = z.object({
-    route: z.enum(['retrieve', 'direct']),
-    directAnswer: z.string().optional(),
-  });
-
-  const configuration = ensureAgentConfiguration(config);
-  const model = await loadChatModel(configuration.queryModel);
-
-  const routingPrompt = ROUTER_SYSTEM_PROMPT;
-
-  const formattedPrompt = await routingPrompt.invoke({
-    query: state.query,
-  });
-
-  const response = await model
-    .withStructuredOutput(schema)
-    .invoke(formattedPrompt.toString());
-
-  const route = response.route;
-
-  return { route };
-}
-
-async function answerQueryDirectly(
-  state: typeof AgentStateAnnotation.State,
-  config: RunnableConfig,
 ): Promise<typeof AgentStateAnnotation.Update> {
-  const configuration = ensureAgentConfiguration(config);
-  const model = await loadChatModel(configuration.queryModel);
-  const userHumanMessage = new HumanMessage(state.query);
+  const triage = triageMessage(state.query);
 
-  const response = await model.invoke([userHumanMessage]);
-  return { messages: [userHumanMessage, response] };
+  return {
+    triage,
+    safetyCategory: triage.category,
+  };
 }
 
-async function routeQuery(
+async function policySelector(
   state: typeof AgentStateAnnotation.State,
-): Promise<'retrieveDocuments' | 'directAnswer'> {
-  const route = state.route;
-  if (!route) {
-    throw new Error('Route is not set');
-  }
+): Promise<typeof AgentStateAnnotation.Update> {
+  const policy = getPolicyForCategory(state.safetyCategory);
 
-  if (route === 'retrieve') {
-    return 'retrieveDocuments';
-  } else if (route === 'direct') {
-    return 'directAnswer';
-  } else {
-    throw new Error('Invalid route');
-  }
+  return {
+    responseMode: policy.mode,
+  };
 }
 
+async function routeByPolicy(
+  state: typeof AgentStateAnnotation.State,
+): Promise<GraphRoute> {
+  const policy = getPolicyForCategory(state.safetyCategory);
+
+  if (policy.useTemplateOnly || !policy.allowRAG) {
+    return "templateResponder";
+  }
+
+  return "retrieveDocuments";
+}
+
+/**
+ * Template-only paths must bypass both the retriever and the LLM.
+ */
+async function templateResponder(
+  state: typeof AgentStateAnnotation.State,
+): Promise<typeof AgentStateAnnotation.Update> {
+  const policy = getPolicyForCategory(state.safetyCategory);
+  const text = getTemplate(policy.templateId ?? "fallback_safe");
+
+  return {
+    draftResponse: text,
+    finalResponse: text,
+  };
+}
+
+/**
+ * Safe support categories retrieve only approved internal alcohol KB documents.
+ */
 async function retrieveDocuments(
   state: typeof AgentStateAnnotation.State,
   config: RunnableConfig,
 ): Promise<typeof AgentStateAnnotation.Update> {
-  const retriever = await makeRetriever(config);
-  const response = await retriever.invoke(state.query);
+  const policy = getPolicyForCategory(state.safetyCategory);
+  const kbFilter = buildKbFilterForPolicy(policy);
 
-  return { documents: response };
+  const mergedConfig: RunnableConfig = {
+    ...(config ?? {}),
+    configurable: {
+      ...((config?.configurable ?? {}) as Record<string, unknown>),
+      filterKwargs: kbFilter ?? {},
+      k: 4,
+    },
+  };
+
+  const retriever = await makeRetriever(mergedConfig);
+  const documents = await retriever.invoke(state.query);
+
+  return { documents };
 }
 
-async function generateResponse(
+/**
+ * LLM generation is used only after KB retrieval for safe support categories.
+ * The output is still only a draft until finalGuard runs.
+ */
+async function generateSafeResponse(
   state: typeof AgentStateAnnotation.State,
   config: RunnableConfig,
 ): Promise<typeof AgentStateAnnotation.Update> {
   const configuration = ensureAgentConfiguration(config);
-  const context = formatDocs(state.documents);
   const model = await loadChatModel(configuration.queryModel);
-  const promptTemplate = RESPONSE_SYSTEM_PROMPT;
+  const policy = getPolicyForCategory(state.safetyCategory);
+  const context = formatDocs(state.documents);
 
-  const formattedPrompt = await promptTemplate.invoke({
-    question: state.query,
-    context: context,
+  const prompt = buildSafeResponsePrompt({
+    query: state.query,
+    context,
+    mode: policy.mode,
+    maxWords: policy.maxWords,
   });
 
-  const userHumanMessage = new HumanMessage(state.query);
+  const response = await model.invoke(prompt);
+  const content =
+    typeof response.content === "string"
+      ? response.content
+      : JSON.stringify(response.content);
 
-  // Create a human message with the formatted prompt that includes context
-  const formattedPromptMessage = new HumanMessage(formattedPrompt.toString());
+  return {
+    draftResponse: content,
+  };
+}
 
-  const messageHistory = [...state.messages, formattedPromptMessage];
+/**
+ * Every path, including fixed templates, passes through the final guard.
+ * Only the guarded final answer is added to message history.
+ */
+async function finalSafetyGuardNode(
+  state: typeof AgentStateAnnotation.State,
+  config?: RunnableConfig,
+): Promise<typeof AgentStateAnnotation.Update> {
+  const policy = getPolicyForCategory(state.safetyCategory);
+  const draft = state.draftResponse || state.finalResponse || "";
 
-  // Let MessagesAnnotation handle the message history
-  const response = await model.invoke(messageHistory);
+  const guard = finalGuard({
+    draft,
+    category: state.safetyCategory,
+  });
 
-  // Return both the current query and the AI response to be handled by MessagesAnnotation's reducer
-  return { messages: [userHumanMessage, response] };
+  const path = policy.useTemplateOnly || !policy.allowRAG ? "template" : "rag";
+
+  const debugLog: SafetyDebugLog = {
+    timestamp: new Date().toISOString(),
+    threadId: config?.configurable?.thread_id as string | undefined,
+    category: state.safetyCategory,
+    responseMode: policy.mode,
+    path,
+    retrievedDocCount: state.documents?.length ?? 0,
+    templateId: policy.templateId,
+    guardAction: guard.action,
+    triggeredRules: guard.triggeredRules,
+  };
+
+  console.info("safety_debug", debugLog);
+
+  return {
+    guard,
+    finalResponse: guard.finalText,
+    messages: [new HumanMessage(state.query), new AIMessage(guard.finalText)],
+  };
 }
 
 const builder = new StateGraph(
   AgentStateAnnotation,
   AgentConfigurationAnnotation,
 )
-  .addNode('retrieveDocuments', retrieveDocuments)
-  .addNode('generateResponse', generateResponse)
-  .addNode('checkQueryType', checkQueryType)
-  .addNode('directAnswer', answerQueryDirectly)
-  .addEdge(START, 'checkQueryType')
-  .addConditionalEdges('checkQueryType', routeQuery, [
-    'retrieveDocuments',
-    'directAnswer',
+  .addNode("inputTriage", inputTriage)
+  .addNode("policySelector", policySelector)
+  .addNode("templateResponder", templateResponder)
+  .addNode("retrieveDocuments", retrieveDocuments)
+  .addNode("generateSafeResponse", generateSafeResponse)
+  .addNode("finalSafetyGuard", finalSafetyGuardNode)
+  .addEdge(START, "inputTriage")
+  .addEdge("inputTriage", "policySelector")
+  .addConditionalEdges("policySelector", routeByPolicy, [
+    "templateResponder",
+    "retrieveDocuments",
   ])
-  .addEdge('retrieveDocuments', 'generateResponse')
-  .addEdge('generateResponse', END)
-  .addEdge('directAnswer', END);
+  .addEdge("templateResponder", "finalSafetyGuard")
+  .addEdge("retrieveDocuments", "generateSafeResponse")
+  .addEdge("generateSafeResponse", "finalSafetyGuard")
+  .addEdge("finalSafetyGuard", END);
 
 export const graph = builder.compile().withConfig({
-  runName: 'RetrievalGraph',
+  runName: "Phase1AlcoholSupportGraph",
 });
