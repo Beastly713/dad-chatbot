@@ -8,13 +8,11 @@ import {
   HeartPulse,
   Loader2,
   MessageCircleHeart,
-  Paperclip,
   ShieldAlert,
   TriangleAlert,
 } from 'lucide-react';
 
 import { ExamplePrompts } from '@/components/example-prompts';
-import { FilePreview } from '@/components/file-preview';
 import { ChatMessage } from '@/components/chat-message';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -305,25 +303,25 @@ export default function Home() {
                 Recovery Support Assistant
               </h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-2xl">
-                A supportive chat experience for check-ins, grounding,
-                reflection, and document-grounded guidance. This assistant is
-                intended to stay safety-bounded and can reference uploaded
-                support resources, care protocols, and recovery documents.
+                A supportive alcohol-recovery chat experience for cravings,
+                lapses, grounding, reflection, and safety-focused guidance.
+                Responses are grounded in a curated internal alcohol-support
+                knowledge base and simple safety rules.
               </p>
             </div>
 
             <div className="flex gap-2 flex-wrap">
               <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
-                Check-in
+                Alcohol cravings
               </span>
               <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
-                Grounded support
+                Lapse support
               </span>
               <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
-                Safety planning
+                Grounding
               </span>
               <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
-                Resource Q&amp;A
+                Safety-bounded
               </span>
             </div>
           </div>
@@ -335,10 +333,11 @@ export default function Home() {
                 <div className="space-y-1">
                   <p className="font-medium">Safety boundaries</p>
                   <p className="text-sm text-muted-foreground">
-                    This assistant is for supportive conversation, grounding,
-                    reflection, and document-grounded guidance. It is not a
-                    crisis service, not a substitute for a clinician, and should
-                    not be relied on for emergency or medication decisions.
+                    This assistant is for alcohol-related recovery support,
+                    cravings, lapses, grounding, and reflection. It is not a
+                    crisis service, not a substitute for a clinician, and
+                    should not be relied on for emergency, medication, detox, or
+                    withdrawal-management decisions.
                   </p>
                 </div>
               </div>
@@ -365,11 +364,11 @@ export default function Home() {
                     <h2 className="font-medium">How I can help</h2>
                   </div>
                   <ul className="text-sm text-muted-foreground space-y-2">
-                    <li>Supportive check-ins and reflection</li>
-                    <li>Grounding and coping prompts</li>
-                    <li>Structured conversation around warning signs</li>
-                    <li>Grounded answers from uploaded support documents</li>
-                    <li>Safety-minded planning conversations</li>
+                    <li>Supportive alcohol-related check-ins and reflection</li>
+                    <li>Craving and urge-coping support</li>
+                    <li>Nonjudgmental lapse and relapse reflection</li>
+                    <li>Grounded answers from a curated alcohol-support KB</li>
+                    <li>Safety-minded next-step conversations</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -381,11 +380,14 @@ export default function Home() {
                     <h2 className="font-medium">What I will not do</h2>
                   </div>
                   <ul className="text-sm text-muted-foreground space-y-2">
-                    <li>Provide diagnosis or critical medical advice</li>
-                    <li>Provide medication instructions</li>
-                    <li>Give harmful, dangerous, or self-harm-enabling guidance</li>
-                    <li>Act as an autonomous clinical decision-maker</li>
-                    <li>Replace urgent emergency support</li>
+                    <li>Provide diagnosis or clinical assessment</li>
+                    <li>
+                      Provide medication, dosage, detox, or withdrawal
+                      instructions
+                    </li>
+                    <li>Give unsafe alcohol-use or alcohol-hiding guidance</li>
+                    <li>Give harmful or self-harm-enabling guidance</li>
+                    <li>Replace urgent emergency or crisis support</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -395,12 +397,15 @@ export default function Home() {
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5" />
-                  <h2 className="font-medium">Grounding with documents</h2>
+                  <h2 className="font-medium">
+                    Curated alcohol-support knowledge
+                  </h2>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Upload safety plans, recovery notes, crisis protocols, care
-                  instructions, or research summaries to make responses more
-                  grounded and less dependent on free-form generation.
+                  For safe support questions, responses can draw from a small
+                  approved alcohol-support knowledge base. High-risk, medical,
+                  detox, medication, unsafe-use, and out-of-scope requests use
+                  fixed safety templates instead.
                 </p>
               </CardContent>
             </Card>
@@ -420,67 +425,26 @@ export default function Home() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t">
         <div className="max-w-5xl mx-auto space-y-3">
           <p className="text-xs text-muted-foreground">
-            The current conversation is grounded in the most recently uploaded
-            document set.
+            Responses are grounded in a curated alcohol-support knowledge base
+            and safety rules. This assistant cannot provide diagnosis,
+            medication advice, detox instructions, or emergency support.
           </p>
-
-          {files.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              {files.map((file, index) => (
-                <FilePreview
-                  key={`${file.name}-${index}`}
-                  file={file}
-                  onRemove={() => handleRemoveFile(file)}
-                />
-              ))}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="relative">
             <div className="flex gap-2 border rounded-2xl overflow-hidden bg-gray-50">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".pdf"
-                multiple
-                className="hidden"
-              />
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="rounded-none h-12"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                ) : (
-                  <Paperclip className="h-4 w-4" />
-                )}
-              </Button>
-
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  isUploading
-                    ? 'Uploading support documents...'
-                    : 'Ask for support, reflection, grounding, or document-grounded guidance...'
-                }
+                placeholder="Ask about alcohol cravings, lapses, recovery support, grounding, or safe next steps..."
                 className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12 bg-transparent"
-                disabled={isUploading || isLoading || !threadId}
+                disabled={isLoading || !threadId}
               />
 
               <Button
                 type="submit"
                 size="icon"
                 className="rounded-none h-12"
-                disabled={!input.trim() || isUploading || isLoading || !threadId}
+                disabled={!input.trim() || isLoading || !threadId}
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

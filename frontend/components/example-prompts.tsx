@@ -6,16 +6,16 @@ interface ExamplePromptsProps {
 
 const EXAMPLE_PROMPTS = [
   {
-    title: 'Help me do a quick emotional check-in.',
+    title: 'I really want a drink right now.',
   },
   {
-    title: 'Give me grounding steps I can try right now.',
+    title: 'I slipped and drank last night.',
   },
   {
-    title: 'Help me reflect on triggers I noticed today.',
+    title: 'I had a long day and I’m worried I drink too much.',
   },
   {
-    title: 'What do my uploaded support documents say about early warning signs?',
+    title: 'Help me choose one safe next step for the next 10 minutes.',
   },
 ];
 
