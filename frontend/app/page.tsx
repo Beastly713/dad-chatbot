@@ -35,12 +35,9 @@ export default function Home() {
     }>
   >([]);
   const [input, setInput] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastRetrievedDocsRef = useRef<PDFDocument[]>([]);
@@ -114,10 +111,15 @@ export default function Home() {
       if (!reader) throw new Error('No reader available');
 
       const decoder = new TextDecoder();
+      let keepReading = true;
 
-      while (true) {
+      while (keepReading) {
         const { done, value } = await reader.read();
-        if (done) break;
+
+        if (done) {
+          keepReading = false;
+          continue;
+        }
 
         const chunkStr = decoder.decode(value);
         const lines = chunkStr.split('\n').filter(Boolean);
@@ -126,10 +128,16 @@ export default function Home() {
           if (!line.startsWith('data: ')) continue;
 
           const sseString = line.slice('data: '.length);
-          let sseEvent: any;
+          let sseEvent: {
+            event?: string;
+            data?: unknown;
+          };
 
           try {
-            sseEvent = JSON.parse(sseString);
+            sseEvent = JSON.parse(sseString) as {
+              event?: string;
+              data?: unknown;
+            };
           } catch (err) {
             console.error('Error parsing SSE line:', err, line);
             continue;
@@ -141,8 +149,14 @@ export default function Home() {
             if (Array.isArray(data)) {
               const lastObj = data[data.length - 1];
 
-              if (lastObj?.type === 'ai') {
-                const partialContent = lastObj.content ?? '';
+              if (
+                lastObj &&
+                typeof lastObj === 'object' &&
+                'type' in lastObj &&
+                lastObj.type === 'ai' &&
+                'content' in lastObj
+              ) {
+                const partialContent = lastObj.content;
 
                 if (
                   typeof partialContent === 'string' &&
@@ -171,6 +185,8 @@ export default function Home() {
               typeof data === 'object' &&
               'retrieveDocuments' in data &&
               data.retrieveDocuments &&
+              typeof data.retrieveDocuments === 'object' &&
+              'documents' in data.retrieveDocuments &&
               Array.isArray(data.retrieveDocuments.documents)
             ) {
               const retrievedDocs = (data as RetrieveDocumentsNodeUpdates)
@@ -205,89 +221,6 @@ export default function Home() {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    if (selectedFiles.length === 0) return;
-
-    const nonPdfFiles = selectedFiles.filter(
-      (file) => file.type !== 'application/pdf',
-    );
-
-    if (nonPdfFiles.length > 0) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload PDF files only',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      selectedFiles.forEach((file) => {
-        formData.append('files', file);
-      });
-
-      const response = await fetch('/api/ingest', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload files');
-      }
-
-      if (!data.threadId) {
-        throw new Error('Upload succeeded but no threadId was returned');
-      }
-
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      lastRetrievedDocsRef.current = [];
-      setMessages([]);
-      setInput('');
-      setFiles(selectedFiles);
-      setThreadId(data.threadId);
-
-      toast({
-        title: 'Resources added',
-        description: `${selectedFiles.length} document${
-          selectedFiles.length > 1 ? 's' : ''
-        } uploaded successfully. New chats will now be grounded only in this upload.`,
-        variant: 'default',
-      });
-    } catch (error) {
-      console.error('Error uploading files:', error);
-      toast({
-        title: 'Upload failed',
-        description:
-          'Failed to upload files. Please try again.\n' +
-          (error instanceof Error ? error.message : 'Unknown error'),
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const handleRemoveFile = (fileToRemove: File) => {
-    setFiles(files.filter((file) => file !== fileToRemove));
-    toast({
-      title: 'Document removed',
-      description: `${fileToRemove.name} has been removed`,
-      variant: 'default',
-    });
   };
 
   return (
