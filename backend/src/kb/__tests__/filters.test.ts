@@ -61,4 +61,21 @@ describe("buildKbFilterForPolicy", () => {
 
     expect(filter).toBeNull();
   });
+
+  it("keeps core KB filtering category-based for Phase 2 stability", () => {
+    const cravingPolicy = getPolicyForCategory("alcohol_craving");
+    const filter = buildKbFilterForPolicy(cravingPolicy);
+
+    expect(filter).toEqual({
+      source: "internal_kb",
+      substance: "alcohol",
+      riskCategory: "alcohol_craving",
+      userVisible: true,
+      approved: true,
+    });
+
+    expect(filter).not.toHaveProperty("stateTag");
+    expect(filter).not.toHaveProperty("supportNeed");
+    expect(filter).not.toHaveProperty("deliveryStyle");
+  });
 });

@@ -25,6 +25,7 @@ import { AgentStateAnnotation } from "./state.js";
 import { buildSafeResponsePrompt } from "./prompts.js";
 import { formatDocs } from "./utils.js";
 import { loadChatModel } from "../shared/utils.js";
+import { buildSubjectiveStateSummary } from "./stateSummary.js";
 import {
   appendSubjectiveHistory,
   buildPendingCheckInRequest,
@@ -414,11 +415,18 @@ async function generateSafeResponse(
       ? state.query
       : "The user submitted or skipped the optional check-in. Continue with safe alcohol-support based on the available context.";
 
+  const subjectiveStateSummary = buildSubjectiveStateSummary({
+    subjectiveState: state.subjectiveState,
+    responseControl: state.responseControl,
+  });
+
   const prompt = buildSafeResponsePrompt({
     query: queryForPrompt,
     context,
     mode: policy.mode,
     maxWords: state.responseControl?.maxWordsOverride ?? policy.maxWords,
+    subjectiveStateSummary,
+    responseControl: state.responseControl,
   });
 
   const response = await model.invoke(prompt);
