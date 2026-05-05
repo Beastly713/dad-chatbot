@@ -51,6 +51,41 @@ const INTERNAL_POLICY_LEAKAGE = [
   /\bdeveloper message\b/i,
 ];
 
+const DIAGNOSTIC_FRAMING = [
+  /\byou (have|likely have|seem to have|probably have) (alcohol use disorder|aud|addiction)\b/i,
+  /\bthis suggests (severe|moderate|mild)?\s*(alcohol use disorder|aud)\b/i,
+  /\bbased on your answers,? you (have|likely have|seem to have)\b/i,
+];
+
+const CLINICAL_SCORE_FRAMING = [
+  /\b(relapse risk|craving|distress|withdrawal|aud|addiction)\s+score\b/i,
+  /\byour score (means|shows|indicates|suggests)\b/i,
+  /\bscore means you (are|will|might|may)\b/i,
+  /\bhigh relapse risk score\b/i,
+];
+
+const WITHDRAWAL_SCORE_FRAMING = [
+  /\bciwa\b/i,
+  /\bciwa-ar\b/i,
+  /\bwithdrawal\s+(score|stage|level|severity)\b/i,
+  /\byou are in alcohol withdrawal stage\b/i,
+  /\byour withdrawal symptoms score\b/i,
+];
+
+const OVERCONFIDENT_SUBJECTIVE_INTERPRETATION = [
+  /\byour craving (means|shows|proves) you (will|are going to|are likely to) relapse\b/i,
+  /\byou are going to relapse\b/i,
+  /\byou will relapse\b/i,
+  /\bbased on your answers,? you (will|are going to|are likely to)\b/i,
+];
+
+const TREATMENT_PLANNING_LANGUAGE = [
+  /\btreatment plan\b/i,
+  /\bclinical plan\b/i,
+  /\bcare plan for your alcohol use disorder\b/i,
+  /\bbased on your answers,? you should follow this plan\b/i,
+];
+
 function collectTriggeredRules(draft: string): string[] {
   const triggered: string[] = [];
 
@@ -65,6 +100,15 @@ function collectTriggeredRules(draft: string): string[] {
   check("unsafe_alcohol_guidance", UNSAFE_ALCOHOL_GUIDANCE);
   check("false_reassurance", FALSE_REASSURANCE);
   check("internal_policy_leakage", INTERNAL_POLICY_LEAKAGE);
+
+  check("diagnostic_framing", DIAGNOSTIC_FRAMING);
+  check("clinical_score_framing", CLINICAL_SCORE_FRAMING);
+  check("withdrawal_score_framing", WITHDRAWAL_SCORE_FRAMING);
+  check(
+    "overconfident_subjective_interpretation",
+    OVERCONFIDENT_SUBJECTIVE_INTERPRETATION,
+  );
+  check("treatment_planning_language", TREATMENT_PLANNING_LANGUAGE);
 
   return triggered;
 }
@@ -150,6 +194,27 @@ export function finalGuard({
     return {
       action: "replace_with_refusal",
       finalText: getTemplate("unsafe_alcohol_refusal"),
+      triggeredRules,
+    };
+  }
+
+  if (triggeredRules.includes("withdrawal_score_framing")) {
+    return {
+      action: "replace_with_refusal",
+      finalText: getTemplate("withdrawal_detox_referral"),
+      triggeredRules,
+    };
+  }
+
+  if (
+    triggeredRules.includes("diagnostic_framing") ||
+    triggeredRules.includes("clinical_score_framing") ||
+    triggeredRules.includes("overconfident_subjective_interpretation") ||
+    triggeredRules.includes("treatment_planning_language")
+  ) {
+    return {
+      action: "replace_with_fallback",
+      finalText: getTemplate("fallback_safe"),
       triggeredRules,
     };
   }

@@ -152,3 +152,73 @@ describe("finalGuard", () => {
     expect(result.finalText).toBe(getTemplate("unsafe_alcohol_refusal"));
   });
 });
+
+describe("Phase 2 subjective overreach guardrails", () => {
+  it("replaces relapse-risk-score language", () => {
+    const result = finalGuard({
+      draft: "Your relapse risk score is high.",
+      category: "general_support",
+    });
+
+    expect(result.action).toBe("replace_with_fallback");
+    expect(result.finalText).toBe(getTemplate("fallback_safe"));
+    expect(result.triggeredRules).toContain("clinical_score_framing");
+  });
+
+  it("replaces AUD diagnosis language", () => {
+    const result = finalGuard({
+      draft: "Based on your answers, you likely have severe AUD.",
+      category: "general_support",
+    });
+
+    expect(result.action).toBe("replace_with_fallback");
+    expect(result.finalText).toBe(getTemplate("fallback_safe"));
+    expect(result.triggeredRules).toContain("diagnostic_framing");
+  });
+
+  it("replaces withdrawal-stage or withdrawal-scoring language", () => {
+    const result = finalGuard({
+      draft: "You are in alcohol withdrawal stage 2 based on your answers.",
+      category: "general_support",
+    });
+
+    expect(result.action).toBe("replace_with_refusal");
+    expect(result.finalText).toBe(getTemplate("withdrawal_detox_referral"));
+    expect(result.triggeredRules).toContain("withdrawal_score_framing");
+  });
+
+  it("replaces overconfident subjective relapse prediction", () => {
+    const result = finalGuard({
+      draft: "Your craving score means you are going to relapse.",
+      category: "alcohol_craving",
+    });
+
+    expect(result.action).toBe("replace_with_fallback");
+    expect(result.finalText).toBe(getTemplate("fallback_safe"));
+    expect(result.triggeredRules).toContain("clinical_score_framing");
+  });
+
+  it("replaces treatment planning language", () => {
+    const result = finalGuard({
+      draft:
+        "Based on your answers, you should follow this treatment plan for alcohol use disorder.",
+      category: "general_support",
+    });
+
+    expect(result.action).toBe("replace_with_fallback");
+    expect(result.finalText).toBe(getTemplate("fallback_safe"));
+    expect(result.triggeredRules).toContain("treatment_planning_language");
+  });
+
+  it("allows non-clinical support-routing language", () => {
+    const result = finalGuard({
+      draft:
+        "Based on what you shared, a short grounding step may fit this moment.",
+      category: "alcohol_craving",
+    });
+
+    expect(result.action).toBe("allow");
+    expect(result.finalText).toContain("short grounding step");
+    expect(result.triggeredRules).toEqual([]);
+  });
+});

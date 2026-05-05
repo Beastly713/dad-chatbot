@@ -1,3 +1,8 @@
+import type {
+  CheckInResponsePayload,
+  SafetySubflags,
+} from "../subjective/types.js";
+import { detectSafetySubflags, getTriggeredSafetySubflagNames } from "./subflags.js";
 import { getPolicyForCategory } from "./policies.js";
 import type { RiskCategory, TriageResult } from "./types.js";
 
@@ -287,4 +292,86 @@ export function triageMessage(message: string): TriageResult {
     needsTemplate: false,
     allowRAG: true,
   };
+}
+
+const RISK_CATEGORY_PRIORITY: Record<RiskCategory, number> = {
+  self_harm_or_immediate_danger: 0,
+  possible_medical_emergency: 1,
+  withdrawal_or_detox_concern: 2,
+  medication_or_dosage_request: 3,
+  unsafe_alcohol_request: 4,
+  alcohol_craving: 5,
+  lapse_or_relapse: 6,
+  general_support: 7,
+  prompt_injection_or_policy_bypass: 8,
+  out_of_scope: 9,
+};
+
+export function categoryFromSafetySubflags(
+  subflags: SafetySubflags,
+): RiskCategory | null {
+  if (
+    subflags.selfHarmConcern ||
+    subflags.immediateDanger ||
+    subflags.unsafeDriving
+  ) {
+    return "self_harm_or_immediate_danger";
+  }
+
+  if (subflags.possibleMedicalEmergencyRedFlag) {
+    return "possible_medical_emergency";
+  }
+
+  if (subflags.possibleWithdrawalRedFlag) {
+    return "withdrawal_or_detox_concern";
+  }
+
+  if (subflags.alcoholMedicationMix || subflags.unsafeAlcoholRequest) {
+    return "unsafe_alcohol_request";
+  }
+
+  return null;
+}
+
+export function triageStructuredSafetyInput(
+  input: string | CheckInResponsePayload | null | undefined,
+): TriageResult | null {
+  const subflags = detectSafetySubflags(input);
+  const category = categoryFromSafetySubflags(subflags);
+
+  if (!category) {
+    return null;
+  }
+
+  return buildResult(
+    category,
+    getTriggeredSafetySubflagNames(subflags).map(
+      (name) => `structured_safety:${name}`,
+    ),
+  );
+}
+
+export function triageMessageWithSubjectiveContext(
+  message: string,
+  checkInResponse?: CheckInResponsePayload | null,
+): TriageResult {
+  const messageResult = triageMessage(message);
+  const structuredResult = triageStructuredSafetyInput(checkInResponse);
+
+  if (!structuredResult) {
+    return messageResult;
+  }
+
+  /**
+   * Structured safety input may escalate upward, but it may never downgrade an
+   * already dangerous category from the original message.
+   */
+  if (
+    RISK_CATEGORY_PRIORITY[structuredResult.category] <
+    RISK_CATEGORY_PRIORITY[messageResult.category]
+  ) {
+    return structuredResult;
+  }
+
+  return messageResult;
 }

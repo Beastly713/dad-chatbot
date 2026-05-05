@@ -1,4 +1,9 @@
-import { triageMessage } from "../triage.js";
+import {
+  triageMessage,
+  triageMessageWithSubjectiveContext,
+  triageStructuredSafetyInput,
+} from "../triage.js";
+import type { CheckInResponsePayload } from "../../subjective/types.js";
 import type { RiskCategory } from "../types.js";
 
 describe("triageMessage", () => {
@@ -157,5 +162,102 @@ describe("triageMessage", () => {
     const result = triageMessage("I have been drinking and need to drive home.");
 
     expect(result.category).toBe("self_harm_or_immediate_danger");
+  });
+});
+
+describe("Phase 2 structured safety triage", () => {
+  it("routes structured unsafe driving to immediate danger", () => {
+    const payload: CheckInResponsePayload = {
+      requestId: "phase2-checkin-test",
+      answers: {
+        support_preference: "I drank and need to drive home.",
+      },
+      skippedFields: [],
+      submittedAt: "2026-05-05T10:00:00.000Z",
+    };
+
+    const result = triageStructuredSafetyInput(payload);
+
+    expect(result?.category).toBe("self_harm_or_immediate_danger");
+    expect(result?.needsTemplate).toBe(true);
+    expect(result?.allowRAG).toBe(false);
+  });
+
+  it("routes structured withdrawal red flag upward", () => {
+    const payload: CheckInResponsePayload = {
+      requestId: "phase2-checkin-test",
+      answers: {
+        support_preference:
+          "I am shaking and seeing things after stopping drinking.",
+      },
+      skippedFields: [],
+      submittedAt: "2026-05-05T10:00:00.000Z",
+    };
+
+    const result = triageStructuredSafetyInput(payload);
+
+    expect([
+      "possible_medical_emergency",
+      "withdrawal_or_detox_concern",
+    ]).toContain(result?.category);
+    expect(result?.needsTemplate).toBe(true);
+    expect(result?.allowRAG).toBe(false);
+  });
+
+  it("routes structured alcohol-medication mixing to unsafe alcohol request", () => {
+    const payload: CheckInResponsePayload = {
+      requestId: "phase2-checkin-test",
+      answers: {
+        support_preference: "I mixed alcohol with sleeping pills.",
+      },
+      skippedFields: [],
+      submittedAt: "2026-05-05T10:00:00.000Z",
+    };
+
+    const result = triageStructuredSafetyInput(payload);
+
+    expect(result?.category).toBe("unsafe_alcohol_request");
+    expect(result?.needsTemplate).toBe(true);
+    expect(result?.allowRAG).toBe(false);
+  });
+
+  it("structured safety input may escalate a safe-support message", () => {
+    const payload: CheckInResponsePayload = {
+      requestId: "phase2-checkin-test",
+      answers: {
+        support_preference: "I drank and need to drive home.",
+      },
+      skippedFields: [],
+      submittedAt: "2026-05-05T10:00:00.000Z",
+    };
+
+    const result = triageMessageWithSubjectiveContext(
+      "I really want a drink right now.",
+      payload,
+    );
+
+    expect(result.category).toBe("self_harm_or_immediate_danger");
+    expect(result.needsTemplate).toBe(true);
+    expect(result.allowRAG).toBe(false);
+  });
+
+  it("structured safety input never downgrades an already dangerous message", () => {
+    const payload: CheckInResponsePayload = {
+      requestId: "phase2-checkin-test",
+      answers: {
+        support_preference: "grounding",
+      },
+      skippedFields: [],
+      submittedAt: "2026-05-05T10:00:00.000Z",
+    };
+
+    const result = triageMessageWithSubjectiveContext(
+      "My friend passed out after drinking.",
+      payload,
+    );
+
+    expect(result.category).toBe("possible_medical_emergency");
+    expect(result.needsTemplate).toBe(true);
+    expect(result.allowRAG).toBe(false);
   });
 });
