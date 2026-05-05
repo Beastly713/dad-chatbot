@@ -97,3 +97,72 @@ export interface IndexConfiguration extends BaseConfiguration {
    */
   useSampleDocs?: boolean;
 }
+
+export type SubjectiveCheckInField =
+  | "craving_level"
+  | "distress_level"
+  | "coping_confidence"
+  | "alcohol_availability"
+  | "support_preference"
+  | "recent_use_status"
+  | "social_context"
+  | "trigger_context";
+
+export type SubjectiveCheckInOption = {
+  label: string;
+  value: string;
+};
+
+export type SubjectiveCheckInQuestion = {
+  field: SubjectiveCheckInField;
+  prompt: string;
+  helperText?: string;
+  inputType: "chips" | "text";
+  options?: SubjectiveCheckInOption[];
+  required: boolean;
+  allowSkip: boolean;
+};
+
+export type SubjectiveCheckInRequest = {
+  requestId: string;
+  substance: "alcohol" | string;
+  questions: SubjectiveCheckInQuestion[];
+  reason: string;
+  createdAt: string;
+};
+
+export type SubjectiveCheckInAnswerValue = string | number | boolean | null;
+
+export type SubjectiveCheckInResponse = {
+  requestId: string;
+  answers: Partial<Record<SubjectiveCheckInField, SubjectiveCheckInAnswerValue>>;
+  skippedFields: SubjectiveCheckInField[] | ["all"];
+  submittedAt: string;
+};
+
+export type SubjectiveUIAction =
+  | {
+      type: "subjective_checkin";
+      request: SubjectiveCheckInRequest;
+    }
+  | null;
+
+export type UIActionUpdate = SubjectiveUIAction;
+
+export type ChatClientMeta = {
+  source?: "chat_input" | "micro_checkin" | "skip_action";
+};
+
+export type ChatRequestPayload = {
+  message?: string;
+  threadId?: string;
+  checkInResponse?: SubjectiveCheckInResponse | null;
+  clientMeta?: ChatClientMeta;
+};
+
+export type Phase2GraphResult = {
+  finalResponse?: string;
+  documents?: PDFDocument[];
+  uiAction?: UIActionUpdate;
+  pendingCheckInRequest?: SubjectiveCheckInRequest | null;
+};
