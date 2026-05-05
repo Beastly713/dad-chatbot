@@ -2,6 +2,17 @@ import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 import { Document } from "@langchain/core/documents";
 import { reduceDocs } from "../shared/state.js";
 import type {
+  CheckInPlan,
+  CheckInResponsePayload,
+  PendingCheckInRequest,
+  ResponseControl,
+  SafetySubflags,
+  SubjectiveEvidence,
+  SubjectiveHistoryEntry,
+  SubjectiveState,
+  UIAction,
+} from "../subjective/types.js";
+import type {
   GuardResult,
   ResponseMode,
   RiskCategory,
@@ -11,15 +22,6 @@ import {
   createDefaultResponseControl,
   createDefaultSafetySubflags,
   createDefaultSubjectiveState,
-} from "../subjective/types.js";
-import type {
-  CheckInResponsePayload,
-  PendingCheckInRequest,
-  ResponseControl,
-  SafetySubflags,
-  SubjectiveHistoryEntry,
-  SubjectiveState,
-  UIAction,
 } from "../subjective/types.js";
 
 function replaceValue<T>(_current: T, update: T): T {
@@ -50,13 +52,25 @@ export const AgentStateAnnotation = Annotation.Root({
 
   /**
    * Phase 2 subjective check-in state.
-   *
-   * These fields are intentionally inert until the subjective graph nodes are
-   * added in a later commit.
    */
   subjectiveState: Annotation<SubjectiveState>({
     value: replaceValue,
     default: createDefaultSubjectiveState,
+  }),
+
+  subjectiveEvidenceDraft: Annotation<SubjectiveEvidence[]>({
+    value: replaceValue,
+    default: () => [],
+  }),
+
+  checkInPlan: Annotation<CheckInPlan | null>({
+    value: replaceValue,
+    default: () => null,
+  }),
+
+  needsCheckIn: Annotation<boolean>({
+    value: replaceValue,
+    default: () => false,
   }),
 
   subjectiveHistory: Annotation<SubjectiveHistoryEntry[]>({

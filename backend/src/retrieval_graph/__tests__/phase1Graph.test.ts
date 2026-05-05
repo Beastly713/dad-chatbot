@@ -99,6 +99,9 @@ describe("Phase 1 alcohol-support retrieval graph", () => {
        * This also indirectly verifies they did not require Supabase/OpenRouter.
        */
       expect(result.documents ?? []).toHaveLength(0);
+      expect(result.pendingCheckInRequest).toBeNull();
+      expect(result.uiAction).toBeNull();
+      expect(result.needsCheckIn).toBe(false);
 
       /**
        * The graph should add exactly the guarded final answer as the final

@@ -92,7 +92,8 @@ function restoreEnv(envBackup: EnvBackup): void {
   if (envBackup.SUPABASE_SERVICE_ROLE_KEY === undefined) {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   } else {
-    process.env.SUPABASE_SERVICE_ROLE_KEY = envBackup.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.SUPABASE_SERVICE_ROLE_KEY =
+      envBackup.SUPABASE_SERVICE_ROLE_KEY;
   }
 }
 
@@ -118,6 +119,9 @@ describe("Phase 1 graph invariants", () => {
 
       expect(result.safetyCategory).toBe(expectedCategory);
       expect(result.documents ?? []).toHaveLength(0);
+      expect(result.pendingCheckInRequest).toBeNull();
+      expect(result.uiAction).toBeNull();
+      expect(result.needsCheckIn).toBe(false);
 
       expect(result.guard).toBeDefined();
       expect(result.guard.action).toBe("allow");
