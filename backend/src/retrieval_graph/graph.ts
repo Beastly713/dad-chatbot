@@ -179,6 +179,7 @@ async function templateResponder(
     pendingCheckInRequest: null,
     uiAction: null,
     needsCheckIn: false,
+    documents: "delete",
   };
 }
 

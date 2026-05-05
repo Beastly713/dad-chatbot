@@ -197,11 +197,15 @@ export default function Home() {
     const decoder = new TextDecoder();
 
     let buffer = "";
+    let isReading = true;
 
-    while (true) {
+    while (isReading) {
       const { done, value } = await reader.read();
 
-      if (done) break;
+      if (done) {
+        isReading = false;
+        continue;
+      }
 
       buffer += decoder.decode(value, { stream: true });
 
@@ -464,7 +468,7 @@ export default function Home() {
 
             <div className="grid w-full max-w-3xl grid-cols-1 gap-4 md:grid-cols-2">
               <Card className="rounded-2xl">
-                <CardContent className="p-5 space-y-3">
+                <CardContent className="space-y-3 p-5">
                   <div className="flex items-center gap-2">
                     <HeartPulse className="h-5 w-5" />
                     <h2 className="font-medium">Support, not diagnosis</h2>
@@ -477,12 +481,12 @@ export default function Home() {
               </Card>
 
               <Card className="rounded-2xl">
-                <CardContent className="p-5 space-y-3">
+                <CardContent className="space-y-3 p-5">
                   <div className="flex items-center gap-2">
                     <ShieldAlert className="h-5 w-5" />
                     <h2 className="font-medium">Safety-bounded</h2>
                   </div>
-                  <ul className="text-sm text-muted-foreground space-y-2 text-left">
+                  <ul className="space-y-2 text-left text-sm text-muted-foreground">
                     <li>No diagnosis or clinical assessment</li>
                     <li>No medication, dosage, detox, or withdrawal guidance</li>
                     <li>No unsafe alcohol-use or alcohol-hiding guidance</li>
@@ -492,7 +496,7 @@ export default function Home() {
               </Card>
 
               <Card className="rounded-2xl">
-                <CardContent className="p-5 space-y-3">
+                <CardContent className="space-y-3 p-5">
                   <div className="flex items-center gap-2">
                     <TriangleAlert className="h-5 w-5" />
                     <h2 className="font-medium">Escalation when needed</h2>
@@ -506,7 +510,7 @@ export default function Home() {
               </Card>
 
               <Card className="rounded-2xl">
-                <CardContent className="p-5 space-y-3">
+                <CardContent className="space-y-3 p-5">
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-5 w-5" />
                     <h2 className="font-medium">

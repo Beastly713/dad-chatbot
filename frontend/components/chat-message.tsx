@@ -66,9 +66,13 @@ export function ChatMessage({
     message.sources &&
     message.sources.length > 0;
 
-  const showCheckIn =
+  const checkInRequest =
     message.role === "assistant" &&
-    message.uiAction?.type === "subjective_checkin";
+    message.uiAction?.type === "subjective_checkin"
+      ? message.uiAction.request
+      : null;
+
+  const showCheckIn = !!checkInRequest;
 
   const handleCopy = async () => {
     try {
@@ -88,29 +92,27 @@ export function ChatMessage({
         }`}
       >
         {isLoading ? (
-          <div className="flex space-x-1 h-6 items-center">
-            <div className="w-1.5 h-1.5 bg-current rounded-full animate-[loading_1s_ease-in-out_infinite]" />
-            <div className="w-1.5 h-1.5 bg-current rounded-full animate-[loading_1s_ease-in-out_0.2s_infinite]" />
-            <div className="w-1.5 h-1.5 bg-current rounded-full animate-[loading_1s_ease-in-out_0.4s_infinite]" />
+          <div className="flex h-6 items-center space-x-1">
+            <div className="h-1.5 w-1.5 animate-[loading_1s_ease-in-out_infinite] rounded-full bg-current" />
+            <div className="h-1.5 w-1.5 animate-[loading_1s_ease-in-out_0.2s_infinite] rounded-full bg-current" />
+            <div className="h-1.5 w-1.5 animate-[loading_1s_ease-in-out_0.4s_infinite] rounded-full bg-current" />
           </div>
         ) : (
           <>
             <p className="whitespace-pre-wrap">{message.content}</p>
 
-            {showCheckIn && message.uiAction?.type === "subjective_checkin" && (
+            {showCheckIn && checkInRequest && (
               <SubjectiveCheckInCard
-                request={message.uiAction.request}
+                request={checkInRequest}
                 status={message.checkInStatus ?? "pending"}
                 disabled={message.checkInStatus !== undefined}
-                onSubmit={(answers) =>
-                  onSubmitCheckIn?.(message.uiAction!.request, answers)
-                }
-                onSkip={() => onSkipCheckIn?.(message.uiAction!.request)}
+                onSubmit={(answers) => onSubmitCheckIn?.(checkInRequest, answers)}
+                onSkip={() => onSkipCheckIn?.(checkInRequest)}
               />
             )}
 
             {!isUser && (
-              <div className="flex gap-2 mt-2">
+              <div className="mt-2 flex gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -126,20 +128,20 @@ export function ChatMessage({
             )}
 
             {showSources && message.sources && (
-              <Accordion type="single" collapsible className="w-full mt-2">
+              <Accordion type="single" collapsible className="mt-2 w-full">
                 <AccordionItem value="sources" className="border-b-0">
-                  <AccordionTrigger className="text-sm py-2 justify-start gap-2 hover:no-underline">
+                  <AccordionTrigger className="justify-start gap-2 py-2 text-sm hover:no-underline">
                     View support sources ({message.sources.length})
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {message.sources.map((source, index) => (
                         <Card
                           key={index}
-                          className="bg-background/50 transition-all duration-200 hover:bg-background hover:shadow-md hover:scale-[1.02]"
+                          className="bg-background/50 transition-all duration-200 hover:scale-[1.02] hover:bg-background hover:shadow-md"
                         >
                           <CardContent className="p-3">
-                            <p className="text-sm font-medium truncate">
+                            <p className="truncate text-sm font-medium">
                               {getSourceTitle(source)}
                             </p>
                             <p className="text-xs text-muted-foreground">
