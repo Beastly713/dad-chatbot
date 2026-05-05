@@ -278,3 +278,33 @@ If you'd like to contribute to this project, feel free to open a pull request. E
 
 If you'd like to learn more about building AI chatbots and agents with LangChain and LangGraph, check out the book [Learning LangChain (O'Reilly)](https://www.oreilly.com/library/view/learning-langchain/9781098167271/).
 
+## Phase 2 — Subjective Check-in Layer
+
+Phase 2 adds an optional, non-diagnostic subjective check-in layer for safe alcohol-support categories.
+
+It can help tailor support based on user-reported current state, such as craving intensity, distress, coping confidence, alcohol availability, recent lapse context, and preferred support style.
+
+Phase 2 does not add clinical scoring, diagnosis, CIWA-Ar, detox guidance, medication guidance, or treatment planning.
+
+Key docs:
+
+- [Phase 2 Subjective Check-in Runbook](docs/PHASE2_SUBJECTIVE_CHECKIN_RUNBOOK.md)
+- [Phase 2 Live Checklist](docs/PHASE2_LIVE_CHECKLIST.md)
+- [Phase 2 Acceptance Cases](docs/PHASE2_ACCEPTANCE_CASES.md)
+
+Required backend validation:
+
+```bash
+cd backend
+corepack yarn test:phase1
+corepack yarn test:phase2
+corepack yarn tsc --noEmit
+```
+
+Required frontend validation:
+
+```bash
+cd frontend
+corepack yarn lint
+corepack yarn build
+```

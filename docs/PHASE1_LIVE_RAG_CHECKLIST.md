@@ -566,3 +566,21 @@ Failures:
 
 Follow-up actions:
 ```
+## Phase 2 live checklist
+
+Phase 1 RAG checks remain valid after Phase 2.
+
+Phase 2 adds optional subjective check-ins for safe-support paths only.
+
+Use the Phase 2 checklist after this Phase 1 checklist:
+
+- [Phase 2 Live Checklist](PHASE2_LIVE_CHECKLIST.md)
+
+Important Phase 2 regression checks:
+
+```text
+Template-only paths must not show check-in cards.
+Template-only paths must not show stale retrieved sources.
+Structured check-in red flags must escalate to template-only safety responses.
+Safe-support check-ins must be optional and skippable.
+```

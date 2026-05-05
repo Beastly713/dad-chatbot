@@ -415,3 +415,24 @@ medication or detox guidance
 human handoff automation
 production compliance system
 ```
+## Phase 2 continuation
+
+Phase 1 remains the safety baseline.
+
+Phase 2 builds on Phase 1 by adding an optional subjective check-in layer only inside safe-support categories.
+
+Phase 2 docs:
+
+- [Phase 2 Subjective Check-in Runbook](PHASE2_SUBJECTIVE_CHECKIN_RUNBOOK.md)
+- [Phase 2 Live Checklist](PHASE2_LIVE_CHECKLIST.md)
+- [Phase 2 Acceptance Cases](PHASE2_ACCEPTANCE_CASES.md)
+
+Phase 1 invariants still apply:
+
+```text
+All messages pass through deterministic triage.
+Template-only categories bypass retriever and LLM.
+Safe-support categories may use approved internal alcohol KB.
+finalGuard runs before every user-facing output.
+Emergency resources remain generic.
+```
