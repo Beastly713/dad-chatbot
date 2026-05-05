@@ -1,3 +1,8 @@
+import type {
+  SafetySubflags,
+  SubjectiveUncertaintyLevel,
+} from "../subjective/types.js";
+
 export type RiskCategory =
   | "self_harm_or_immediate_danger"
   | "possible_medical_emergency"
@@ -95,4 +100,12 @@ export type SafetyDebugLog = {
   templateId?: TemplateId;
   guardAction: GuardAction;
   triggeredRules: string[];
+
+  /**
+   * Phase 2 optional subjective-safety metadata.
+   * This is summary-only and must not contain raw self-report text.
+   */
+  safetySubflags?: SafetySubflags;
+  subjectiveUncertainty?: SubjectiveUncertaintyLevel;
+  checkInRequested?: boolean;
 };

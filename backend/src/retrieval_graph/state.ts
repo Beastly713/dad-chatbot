@@ -7,12 +7,33 @@ import type {
   RiskCategory,
   TriageResult,
 } from "../safety/types.js";
+import {
+  createDefaultResponseControl,
+  createDefaultSafetySubflags,
+  createDefaultSubjectiveState,
+} from "../subjective/types.js";
+import type {
+  CheckInResponsePayload,
+  PendingCheckInRequest,
+  ResponseControl,
+  SafetySubflags,
+  SubjectiveHistoryEntry,
+  SubjectiveState,
+  UIAction,
+} from "../subjective/types.js";
+
+function replaceValue<T>(_current: T, update: T): T {
+  return update;
+}
 
 /**
- * Represents the state of the Phase 1 alcohol-support retrieval graph.
+ * Represents the state of the alcohol-support retrieval graph.
  *
- * All user messages pass through deterministic triage, policy selection,
- * either template-only response or approved KB retrieval, and final guard.
+ * Phase 1 fields preserve deterministic triage, policy selection, either
+ * template-only response or approved KB retrieval, and final guard.
+ *
+ * Phase 2 subjective fields are added with safe defaults but are not wired
+ * into runtime graph behavior in Commit 1.
  */
 export const AgentStateAnnotation = Annotation.Root({
   query: Annotation<string>(),
@@ -26,6 +47,47 @@ export const AgentStateAnnotation = Annotation.Root({
   draftResponse: Annotation<string>(),
   finalResponse: Annotation<string>(),
   guard: Annotation<GuardResult>(),
+
+  /**
+   * Phase 2 subjective check-in state.
+   *
+   * These fields are intentionally inert until the subjective graph nodes are
+   * added in a later commit.
+   */
+  subjectiveState: Annotation<SubjectiveState>({
+    value: replaceValue,
+    default: createDefaultSubjectiveState,
+  }),
+
+  subjectiveHistory: Annotation<SubjectiveHistoryEntry[]>({
+    value: replaceValue,
+    default: () => [],
+  }),
+
+  pendingCheckInRequest: Annotation<PendingCheckInRequest | null>({
+    value: replaceValue,
+    default: () => null,
+  }),
+
+  checkInResponse: Annotation<CheckInResponsePayload | null>({
+    value: replaceValue,
+    default: () => null,
+  }),
+
+  responseControl: Annotation<ResponseControl>({
+    value: replaceValue,
+    default: createDefaultResponseControl,
+  }),
+
+  safetySubflags: Annotation<SafetySubflags>({
+    value: replaceValue,
+    default: createDefaultSafetySubflags,
+  }),
+
+  uiAction: Annotation<UIAction>({
+    value: replaceValue,
+    default: () => null,
+  }),
 
   /**
    * Populated only for safe support categories that allow RAG.
