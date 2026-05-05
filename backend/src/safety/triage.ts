@@ -132,6 +132,10 @@ const LAPSE_PATTERNS = [
 ];
 
 const PROMPT_INJECTION_PATTERNS = [
+  /\bignore (your|the) (rules|safety rules|safety instructions|instructions|policy|policies)\b/i,
+  /\bignore (all )?(previous|prior) (instructions|rules|messages)\b/i,
+  /\bask me ciwa questions\b/i,
+  /\bciwa questions\b/i,
   /\bignore (your|the) instructions\b/i,
   /\bignore (your|the) rules\b/i,
   /\bhidden instructions\b/i,
