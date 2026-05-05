@@ -23,7 +23,7 @@
     "lint:langgraph-json": "node scripts/checkLanggraphPaths.js",
     "lint:all": "yarn lint & yarn lint:langgraph-json",
     "langgraph:dev": "npx @langchain/langgraph-cli dev",
-    "test:phase1": "jest src/safety/__tests__ src/kb/__tests__ src/retrieval_graph/__tests__/phase1Graph.test.ts --runInBand"
+    "test:phase1": "jest src/safety/__tests__ src/kb/__tests__ src/retrieval_graph/__tests__ --runInBand"
   },
   "dependencies": {
     "@langchain/community": "^0.3.26",
