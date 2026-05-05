@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
   BookOpen,
@@ -10,33 +10,93 @@ import {
   MessageCircleHeart,
   ShieldAlert,
   TriangleAlert,
-} from 'lucide-react';
-
-import { ExamplePrompts } from '@/components/example-prompts';
-import { ChatMessage } from '@/components/chat-message';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { client } from '@/lib/langgraph-client';
+} from "lucide-react";
+import { ExamplePrompts } from "@/components/example-prompts";
+import { ChatMessage } from "@/components/chat-message";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { client } from "@/lib/langgraph-client";
 import {
+  buildSkipAllCheckInResponse,
+  buildSubjectiveCheckInResponse,
+  type SubjectiveCheckInAnswers,
+} from "@/lib/subjective-checkin";
+import type {
+  ChatMessageModel,
+  ChatRequestPayload,
   PDFDocument,
-  RetrieveDocumentsNodeUpdates,
-} from '@/types/graphTypes';
+  SubjectiveCheckInRequest,
+  UIActionUpdate,
+} from "@/types/graphTypes";
+
+type ChatSSEEvent = {
+  event: string;
+  data: unknown;
+};
+
+type UpdatesPayload = {
+  threadId?: string;
+  uiAction?: UIActionUpdate;
+  retrieveDocuments?: {
+    documents?: PDFDocument[];
+  };
+};
+
+type MessagePartialPayload = Array<{
+  type?: string;
+  content?: string;
+}>;
+
+function createMessageId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function parseSSEChunk(buffer: string): {
+  completeEvents: string[];
+  remainingBuffer: string;
+} {
+  const parts = buffer.split("\n\n");
+  return {
+    completeEvents: parts.slice(0, -1),
+    remainingBuffer: parts[parts.length - 1] ?? "",
+  };
+}
+
+function parseSSEEvent(rawEvent: string): ChatSSEEvent | null {
+  const dataLine = rawEvent
+    .split("\n")
+    .find((line) => line.startsWith("data: "));
+
+  if (!dataLine) return null;
+
+  try {
+    return JSON.parse(dataLine.slice("data: ".length)) as ChatSSEEvent;
+  } catch (error) {
+    console.error("Failed to parse SSE event:", error);
+    return null;
+  }
+}
+
+function isUpdatesPayload(data: unknown): data is UpdatesPayload {
+  return typeof data === "object" && data !== null;
+}
+
+function isMessagePartialPayload(data: unknown): data is MessagePartialPayload {
+  return Array.isArray(data);
+}
 
 export default function Home() {
   const { toast } = useToast();
 
-  const [messages, setMessages] = useState<
-    Array<{
-      role: 'user' | 'assistant';
-      content: string;
-      sources?: PDFDocument[];
-    }>
-  >([]);
-  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessageModel[]>([]);
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [pendingCheckInRequest, setPendingCheckInRequest] =
+    useState<SubjectiveCheckInRequest | null>(null);
+  const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -50,13 +110,12 @@ export default function Home() {
         const thread = await client.createThread();
         setThreadId(thread.thread_id);
       } catch (error) {
-        console.error('Error creating thread:', error);
+        console.error("Error creating thread:", error);
         toast({
-          title: 'Error',
+          title: "Error",
           description:
-            'Error creating thread. Please make sure you have set the LANGGRAPH_API_URL environment variable correctly. ' +
-            error,
-          variant: 'destructive',
+            "Error creating thread. The chat can still try to create one through the API.",
+          variant: "destructive",
         });
       }
     };
@@ -65,319 +124,450 @@ export default function Home() {
   }, [threadId, toast]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || !threadId || isLoading) return;
+  function updateAssistantMessage(
+    assistantMessageId: string,
+    update: Partial<ChatMessageModel>,
+  ) {
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === assistantMessageId
+          ? {
+              ...message,
+              ...update,
+            }
+          : message,
+      ),
+    );
+  }
 
+  function markCheckInStatus(
+    requestId: string,
+    status: "submitted" | "skipped",
+  ) {
+    setMessages((current) =>
+      current.map((message) => {
+        if (
+          message.uiAction?.type === "subjective_checkin" &&
+          message.uiAction.request.requestId === requestId
+        ) {
+          return {
+            ...message,
+            checkInStatus: status,
+          };
+        }
+
+        return message;
+      }),
+    );
+  }
+
+  async function sendChatRequest(
+    payload: ChatRequestPayload,
+    assistantMessageId: string,
+  ) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-
-    const userMessage = input.trim();
-
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: userMessage, sources: undefined },
-      { role: 'assistant', content: '', sources: undefined },
-    ]);
-    setInput('');
-    setIsLoading(true);
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     lastRetrievedDocsRef.current = [];
 
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: abortController.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error("No response body");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const { completeEvents, remainingBuffer } = parseSSEChunk(buffer);
+      buffer = remainingBuffer;
+
+      for (const rawEvent of completeEvents) {
+        const parsedEvent = parseSSEEvent(rawEvent);
+        if (!parsedEvent) continue;
+
+        if (
+          parsedEvent.event === "updates" &&
+          isUpdatesPayload(parsedEvent.data)
+        ) {
+          const updates = parsedEvent.data;
+
+          if (typeof updates.threadId === "string") {
+            setThreadId(updates.threadId);
+          }
+
+          if (updates.uiAction) {
+            updateAssistantMessage(assistantMessageId, {
+              uiAction: updates.uiAction,
+            });
+
+            if (updates.uiAction.type === "subjective_checkin") {
+              setPendingCheckInRequest(updates.uiAction.request);
+            }
+          }
+
+          if (updates.retrieveDocuments?.documents) {
+            lastRetrievedDocsRef.current =
+              updates.retrieveDocuments.documents;
+          }
+        }
+
+        if (
+          parsedEvent.event === "messages/partial" &&
+          isMessagePartialPayload(parsedEvent.data)
+        ) {
+          const content = parsedEvent.data
+            .map((message) => message.content ?? "")
+            .join("");
+
+          updateAssistantMessage(assistantMessageId, {
+            content,
+            sources: lastRetrievedDocsRef.current,
+          });
+        }
+      }
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    const userMessageId = createMessageId("user");
+    const assistantMessageId = createMessageId("assistant");
+
+    setMessages((current) => [
+      ...current,
+      {
+        id: userMessageId,
+        role: "user",
+        content: userMessage,
+        sources: undefined,
+      },
+      {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        sources: undefined,
+      },
+    ]);
+
+    setInput("");
+    setIsLoading(true);
+    setPendingCheckInRequest(null);
+
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      await sendChatRequest(
+        {
           message: userMessage,
-          threadId,
-        }),
-        signal: abortController.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No reader available');
-
-      const decoder = new TextDecoder();
-      let keepReading = true;
-
-      while (keepReading) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          keepReading = false;
-          continue;
-        }
-
-        const chunkStr = decoder.decode(value);
-        const lines = chunkStr.split('\n').filter(Boolean);
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-
-          const sseString = line.slice('data: '.length);
-          let sseEvent: {
-            event?: string;
-            data?: unknown;
-          };
-
-          try {
-            sseEvent = JSON.parse(sseString) as {
-              event?: string;
-              data?: unknown;
-            };
-          } catch (err) {
-            console.error('Error parsing SSE line:', err, line);
-            continue;
-          }
-
-          const { event, data } = sseEvent;
-
-          if (event === 'messages/partial') {
-            if (Array.isArray(data)) {
-              const lastObj = data[data.length - 1];
-
-              if (
-                lastObj &&
-                typeof lastObj === 'object' &&
-                'type' in lastObj &&
-                lastObj.type === 'ai' &&
-                'content' in lastObj
-              ) {
-                const partialContent = lastObj.content;
-
-                if (
-                  typeof partialContent === 'string' &&
-                  !partialContent.startsWith('{')
-                ) {
-                  setMessages((prev) => {
-                    const newArr = [...prev];
-
-                    if (
-                      newArr.length > 0 &&
-                      newArr[newArr.length - 1].role === 'assistant'
-                    ) {
-                      newArr[newArr.length - 1].content = partialContent;
-                      newArr[newArr.length - 1].sources =
-                        lastRetrievedDocsRef.current;
-                    }
-
-                    return newArr;
-                  });
-                }
-              }
-            }
-          } else if (event === 'updates' && data) {
-            if (
-              data &&
-              typeof data === 'object' &&
-              'retrieveDocuments' in data &&
-              data.retrieveDocuments &&
-              typeof data.retrieveDocuments === 'object' &&
-              'documents' in data.retrieveDocuments &&
-              Array.isArray(data.retrieveDocuments.documents)
-            ) {
-              const retrievedDocs = (data as RetrieveDocumentsNodeUpdates)
-                .retrieveDocuments.documents as PDFDocument[];
-              lastRetrievedDocsRef.current = retrievedDocs;
-              console.log('Retrieved documents:', retrievedDocs);
-            } else {
-              lastRetrievedDocsRef.current = [];
-            }
-          } else {
-            console.log('Unknown SSE event:', event, data);
-          }
-        }
-      }
+          threadId: threadId ?? undefined,
+          checkInResponse: null,
+          clientMeta: {
+            source: "chat_input",
+          },
+        },
+        assistantMessageId,
+      );
     } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description:
-          'Failed to send message. Please try again.\n' +
-          (error instanceof Error ? error.message : 'Unknown error'),
-        variant: 'destructive',
+      if ((error as Error).name === "AbortError") return;
+
+      console.error("Error sending message:", error);
+
+      updateAssistantMessage(assistantMessageId, {
+        content:
+          "I’m sorry, something went wrong while responding. Please try again.",
       });
 
-      setMessages((prev) => {
-        const newArr = [...prev];
-        newArr[newArr.length - 1].content =
-          'Sorry, there was an error processing your message.';
-        return newArr;
+      toast({
+        title: "Error",
+        description: "Error sending message. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
-      abortControllerRef.current = null;
     }
-  };
+  }
+
+  async function handleSubmitCheckIn(
+    request: SubjectiveCheckInRequest,
+    answers: SubjectiveCheckInAnswers,
+  ) {
+    if (isLoading || isSubmittingCheckIn) return;
+
+    const userMessageId = createMessageId("user-checkin");
+    const assistantMessageId = createMessageId("assistant-checkin");
+
+    markCheckInStatus(request.requestId, "submitted");
+
+    setMessages((current) => [
+      ...current,
+      {
+        id: userMessageId,
+        role: "user",
+        content: "I answered the quick check-in.",
+      },
+      {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        sources: undefined,
+      },
+    ]);
+
+    setIsLoading(true);
+    setIsSubmittingCheckIn(true);
+    setPendingCheckInRequest(null);
+
+    try {
+      await sendChatRequest(
+        {
+          message: "",
+          threadId: threadId ?? undefined,
+          checkInResponse: buildSubjectiveCheckInResponse({
+            request,
+            answers,
+          }),
+          clientMeta: {
+            source: "micro_checkin",
+          },
+        },
+        assistantMessageId,
+      );
+    } catch (error) {
+      if ((error as Error).name === "AbortError") return;
+
+      console.error("Error submitting check-in:", error);
+
+      updateAssistantMessage(assistantMessageId, {
+        content:
+          "I’m sorry, something went wrong after the check-in. Please try again.",
+      });
+
+      toast({
+        title: "Error",
+        description: "Error submitting check-in. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setIsSubmittingCheckIn(false);
+    }
+  }
+
+  async function handleSkipCheckIn(request: SubjectiveCheckInRequest) {
+    if (isLoading || isSubmittingCheckIn) return;
+
+    const userMessageId = createMessageId("user-skip");
+    const assistantMessageId = createMessageId("assistant-skip");
+
+    markCheckInStatus(request.requestId, "skipped");
+
+    setMessages((current) => [
+      ...current,
+      {
+        id: userMessageId,
+        role: "user",
+        content: "I skipped the quick check-in.",
+      },
+      {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        sources: undefined,
+      },
+    ]);
+
+    setIsLoading(true);
+    setIsSubmittingCheckIn(true);
+    setPendingCheckInRequest(null);
+
+    try {
+      await sendChatRequest(
+        {
+          message: "",
+          threadId: threadId ?? undefined,
+          checkInResponse: buildSkipAllCheckInResponse(request),
+          clientMeta: {
+            source: "skip_action",
+          },
+        },
+        assistantMessageId,
+      );
+    } catch (error) {
+      if ((error as Error).name === "AbortError") return;
+
+      console.error("Error skipping check-in:", error);
+
+      updateAssistantMessage(assistantMessageId, {
+        content:
+          "I’m sorry, something went wrong while continuing. Please try again.",
+      });
+
+      toast({
+        title: "Error",
+        description: "Error continuing after skip. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setIsSubmittingCheckIn(false);
+    }
+  }
+
+  const hasMessages = messages.length > 0;
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto px-4 py-6 md:px-6 md:py-10">
-        <div className="space-y-4 mb-6">
-          <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
-            <div className="space-y-2">
-              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
-                Safety-aware support
-              </p>
-              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+    <main className="flex min-h-screen flex-col items-center bg-background">
+      <div className="w-full max-w-5xl flex-1 px-4 py-8">
+        {!hasMessages ? (
+          <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center">
+            <div className="space-y-3">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+                <MessageCircleHeart className="h-7 w-7" />
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight">
                 Recovery Support Assistant
               </h1>
-              <p className="text-sm md:text-base text-muted-foreground max-w-2xl">
-                A supportive alcohol-recovery chat experience for cravings,
-                lapses, grounding, reflection, and safety-focused guidance.
-                Responses are grounded in a curated internal alcohol-support
-                knowledge base and simple safety rules.
+              <p className="max-w-2xl text-muted-foreground">
+                A safety-aware alcohol-support chat experience for cravings,
+                lapses, grounding, and safe next steps.
               </p>
             </div>
 
-            <div className="flex gap-2 flex-wrap">
-              <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
-                Alcohol cravings
-              </span>
-              <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
-                Lapse support
-              </span>
-              <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
-                Grounding
-              </span>
-              <span className="text-xs rounded-full border px-3 py-1 text-muted-foreground">
-                Safety-bounded
-              </span>
-            </div>
-          </div>
-
-          <Card className="rounded-2xl border">
-            <CardContent className="p-4 md:p-5 space-y-3">
-              <div className="flex items-start gap-3">
-                <ShieldAlert className="h-5 w-5 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-medium">Safety boundaries</p>
-                  <p className="text-sm text-muted-foreground">
-                    This assistant is for alcohol-related recovery support,
-                    cravings, lapses, grounding, and reflection. It is not a
-                    crisis service, not a substitute for a clinician, and
-                    should not be relied on for emergency, medication, detox, or
-                    withdrawal-management decisions.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <TriangleAlert className="h-5 w-5 mt-0.5" />
-                <p className="text-sm text-muted-foreground">
-                  If there is immediate danger, medical emergency, overdose
-                  concern, or risk of self-harm, seek urgent local emergency or
-                  crisis support right away.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {messages.length === 0 ? (
-          <div className="space-y-6 pb-40">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="rounded-2xl">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <MessageCircleHeart className="h-5 w-5" />
-                    <h2 className="font-medium">How I can help</h2>
-                  </div>
-                  <ul className="text-sm text-muted-foreground space-y-2">
-                    <li>Supportive alcohol-related check-ins and reflection</li>
-                    <li>Craving and urge-coping support</li>
-                    <li>Nonjudgmental lapse and relapse reflection</li>
-                    <li>Grounded answers from a curated alcohol-support KB</li>
-                    <li>Safety-minded next-step conversations</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
+            <div className="grid w-full max-w-3xl grid-cols-1 gap-4 md:grid-cols-2">
               <Card className="rounded-2xl">
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center gap-2">
                     <HeartPulse className="h-5 w-5" />
-                    <h2 className="font-medium">What I will not do</h2>
+                    <h2 className="font-medium">Support, not diagnosis</h2>
                   </div>
-                  <ul className="text-sm text-muted-foreground space-y-2">
-                    <li>Provide diagnosis or clinical assessment</li>
-                    <li>
-                      Provide medication, dosage, detox, or withdrawal
-                      instructions
-                    </li>
-                    <li>Give unsafe alcohol-use or alcohol-hiding guidance</li>
-                    <li>Give harmful or self-harm-enabling guidance</li>
-                    <li>Replace urgent emergency or crisis support</li>
+                  <p className="text-sm text-muted-foreground">
+                    This assistant can offer supportive coping steps and
+                    grounding, but it is not a clinician or emergency service.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5" />
+                    <h2 className="font-medium">Safety-bounded</h2>
+                  </div>
+                  <ul className="text-sm text-muted-foreground space-y-2 text-left">
+                    <li>No diagnosis or clinical assessment</li>
+                    <li>No medication, dosage, detox, or withdrawal guidance</li>
+                    <li>No unsafe alcohol-use or alcohol-hiding guidance</li>
+                    <li>No harmful or self-harm-enabling guidance</li>
                   </ul>
                 </CardContent>
               </Card>
-            </div>
 
-            <Card className="rounded-2xl">
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  <h2 className="font-medium">
-                    Curated alcohol-support knowledge
-                  </h2>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  For safe support questions, responses can draw from a small
-                  approved alcohol-support knowledge base. High-risk, medical,
-                  detox, medication, unsafe-use, and out-of-scope requests use
-                  fixed safety templates instead.
-                </p>
-              </CardContent>
-            </Card>
+              <Card className="rounded-2xl">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <TriangleAlert className="h-5 w-5" />
+                    <h2 className="font-medium">Escalation when needed</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    If something sounds medically urgent or immediately unsafe,
+                    the assistant uses generic safety language and encourages
+                    real-world help.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    <h2 className="font-medium">
+                      Curated alcohol-support knowledge
+                    </h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Safe support responses can draw from approved internal
+                    alcohol-support notes. High-risk and refusal paths use fixed
+                    templates instead.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
             <ExamplePrompts onPromptSelect={setInput} />
           </div>
         ) : (
           <div className="w-full space-y-4 pb-40">
-            {messages.map((message, i) => (
-              <ChatMessage key={i} message={message} />
+            {messages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                message={message}
+                onSubmitCheckIn={handleSubmitCheckIn}
+                onSkipCheckIn={handleSkipCheckIn}
+              />
             ))}
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t">
-        <div className="max-w-5xl mx-auto space-y-3">
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="mx-auto max-w-5xl space-y-3">
           <p className="text-xs text-muted-foreground">
             Responses are grounded in a curated alcohol-support knowledge base
             and safety rules. This assistant cannot provide diagnosis,
             medication advice, detox instructions, or emergency support.
           </p>
 
+          {pendingCheckInRequest && (
+            <p className="text-xs text-muted-foreground">
+              A quick optional check-in is available above. You can answer it or
+              skip it.
+            </p>
+          )}
+
           <form onSubmit={handleSubmit} className="relative">
-            <div className="flex gap-2 border rounded-2xl overflow-hidden bg-gray-50">
+            <div className="flex gap-2 overflow-hidden rounded-2xl border bg-gray-50">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about alcohol cravings, lapses, recovery support, grounding, or safe next steps..."
-                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12 bg-transparent"
-                disabled={isLoading || !threadId}
+                className="h-12 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                disabled={isLoading}
               />
-
               <Button
                 type="submit"
                 size="icon"
-                className="rounded-none h-12"
-                disabled={!input.trim() || isLoading || !threadId}
+                className="h-12 rounded-none"
+                disabled={!input.trim() || isLoading}
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

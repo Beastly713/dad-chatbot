@@ -166,3 +166,14 @@ export type Phase2GraphResult = {
   uiAction?: UIActionUpdate;
   pendingCheckInRequest?: SubjectiveCheckInRequest | null;
 };
+
+export type ChatMessageCheckInStatus = "pending" | "submitted" | "skipped";
+
+export type ChatMessageModel = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  sources?: PDFDocument[];
+  uiAction?: UIActionUpdate;
+  checkInStatus?: ChatMessageCheckInStatus;
+};
