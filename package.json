@@ -9,7 +9,8 @@
     "workspaces": [
         "backend",
         "frontend",
-        "packages/*"
+        "packages/*",
+        "services/*"
     ],
     "scripts": {
         "build": "yarn run turbo:command build",
