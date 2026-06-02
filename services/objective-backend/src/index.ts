@@ -7,6 +7,10 @@ export * from "./trace.js";
 export * from "./errors.js";
 export * from "./health.js";
 export * from "./server.js";
+export * from "./auth.js";
+export * from "./assignments.js";
+export * from "./visibility.js";
+export * from "./failClosed.js";
 
 function isMainModule(): boolean {
     const entrypoint = process.argv[1];
