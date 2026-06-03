@@ -1,6 +1,11 @@
 import { randomUUID } from "crypto";
 import type { ObjectiveAuditLogger } from "./audit.js";
 import type { ObjectiveActor, ObjectiveGuardResult } from "./auth.js";
+import {
+    analyzeObjectiveRawTiming,
+    partitionObjectiveFramesByTimingGaps,
+    type ObjectiveRawTimingAnalysis,
+} from "./rawTiming.js";
 import type {
     ObjectiveSessionLifecycleDependencies,
     ObjectiveSessionRecord,
@@ -71,6 +76,7 @@ export type ObjectiveAcceptedRawChunk = {
     frame_count: number;
     first_esp_time_ms: number;
     last_esp_time_ms: number;
+    timing: ObjectiveRawTimingAnalysis;
     frames: ObjectiveRawSensorFrame[];
     clinician_visible: true;
     patient_visible: false;
@@ -101,6 +107,7 @@ export type ObjectiveRawIngestionResult = {
     session_id: string;
     accepted_frame_count: number;
     quarantined_frame_count: number;
+    timing: ObjectiveRawTimingAnalysis;
     chunks: ObjectiveAcceptedRawChunk[];
     quarantined: ObjectiveQuarantinedRawFrame[];
     clinician_visible: true;
@@ -425,40 +432,34 @@ function buildIngestionResult(
         });
     });
 
-    const sortedAcceptedFrames = [...acceptedFrames].sort(
-        (left, right) => left.esp_time_ms - right.esp_time_ms,
-    );
+    const timing = analyzeObjectiveRawTiming(acceptedFrames);
+    const partitions = partitionObjectiveFramesByTimingGaps(acceptedFrames);
 
-    const chunks: ObjectiveAcceptedRawChunk[] =
-        sortedAcceptedFrames.length === 0
-            ? []
-            : [
-                  {
-                      raw_chunk_id: randomUUID(),
-                      batch_id: input.batch_id,
-                      session_id: input.session_id,
-                      source_type: input.source_type,
-                      device_id: input.device_id,
-                      device_boot_id: input.device_boot_id,
-                      segment_id: input.segment_id,
-                      chunk_index: 0,
-                      frame_count: sortedAcceptedFrames.length,
-                      first_esp_time_ms: sortedAcceptedFrames[0].esp_time_ms,
-                      last_esp_time_ms:
-                          sortedAcceptedFrames[sortedAcceptedFrames.length - 1]
-                              .esp_time_ms,
-                      frames: sortedAcceptedFrames,
-                      clinician_visible: true,
-                      patient_visible: false,
-                      chatbot_visible: false,
-                  },
-              ];
+    const chunks: ObjectiveAcceptedRawChunk[] = partitions.map((partition) => ({
+        raw_chunk_id: randomUUID(),
+        batch_id: input.batch_id,
+        session_id: input.session_id,
+        source_type: input.source_type,
+        device_id: input.device_id,
+        device_boot_id: input.device_boot_id,
+        segment_id: input.segment_id,
+        chunk_index: partition.partition_index,
+        frame_count: partition.frames.length,
+        first_esp_time_ms: partition.first_esp_time_ms,
+        last_esp_time_ms: partition.last_esp_time_ms,
+        timing: analyzeObjectiveRawTiming(partition.frames),
+        frames: partition.frames,
+        clinician_visible: true,
+        patient_visible: false,
+        chatbot_visible: false,
+    }));
 
     return {
         batch_id: input.batch_id,
         session_id: input.session_id,
-        accepted_frame_count: sortedAcceptedFrames.length,
+        accepted_frame_count: acceptedFrames.length,
         quarantined_frame_count: quarantined.length,
+        timing,
         chunks,
         quarantined,
         clinician_visible: true,

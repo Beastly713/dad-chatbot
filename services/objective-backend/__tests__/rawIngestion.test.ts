@@ -212,6 +212,130 @@ describe("objective raw ingestion", () => {
         );
     });
 
+    it("splits accepted chunks across large ESP timing gaps", async () => {
+        const { sessions, session } = await createActiveSession(clinician);
+        const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
+
+        const batch = validBatch(session.session_id);
+
+        batch.frames = [
+            {
+                pc_timestamp: "2026-06-02T10:00:00.000Z",
+                esp_time_ms: 1000,
+                ecg_raw: 2900,
+                gsr_raw: 2405,
+            },
+            {
+                pc_timestamp: "2026-06-02T10:00:00.005Z",
+                esp_time_ms: 1005,
+                ecg_raw: 2910,
+                gsr_raw: 2406,
+            },
+            {
+                pc_timestamp: "2026-06-02T10:00:04.000Z",
+                esp_time_ms: 5000,
+                ecg_raw: 2920,
+                gsr_raw: 2407,
+            },
+            {
+                pc_timestamp: "2026-06-02T10:00:04.005Z",
+                esp_time_ms: 5005,
+                ecg_raw: 2930,
+                gsr_raw: 2408,
+            },
+        ];
+
+        const result = await ingestObjectiveRawBatch(
+            clinician,
+            batch,
+            {
+                sessions,
+                assignments: assignedLookup(true),
+                rawIngestion,
+            },
+            trace,
+        );
+
+        expect(result.allowed).toBe(true);
+
+        if (!result.allowed) {
+            throw new Error("Expected ingestion with timing gaps to succeed");
+        }
+
+        expect(result.value.accepted_frame_count).toBe(4);
+        expect(result.value.quarantined_frame_count).toBe(0);
+        expect(result.value.timing).toEqual(
+            expect.objectContaining({
+                timing_quality: "limited",
+                gap_count: 1,
+                segment_boundary_count: 1,
+                max_gap_ms: 3995,
+                warnings: ["large_timing_gap"],
+            }),
+        );
+        expect(result.value.chunks).toHaveLength(2);
+        expect(result.value.chunks[0]).toEqual(
+            expect.objectContaining({
+                chunk_index: 0,
+                frame_count: 2,
+                first_esp_time_ms: 1000,
+                last_esp_time_ms: 1005,
+            }),
+        );
+        expect(result.value.chunks[1]).toEqual(
+            expect.objectContaining({
+                chunk_index: 1,
+                frame_count: 2,
+                first_esp_time_ms: 5000,
+                last_esp_time_ms: 5005,
+            }),
+        );
+    });
+
+    it("accepts out-of-order valid frames but marks timing quality as limited", async () => {
+        const { sessions, session } = await createActiveSession(clinician);
+        const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
+
+        const batch = validBatch(session.session_id);
+
+        batch.frames = [
+            {
+                pc_timestamp: "2026-06-02T10:00:00.010Z",
+                esp_time_ms: 1010,
+                ecg_raw: 2920,
+                gsr_raw: 2406,
+            },
+            {
+                pc_timestamp: "2026-06-02T10:00:00.000Z",
+                esp_time_ms: 1000,
+                ecg_raw: 2900,
+                gsr_raw: 2405,
+            },
+        ];
+
+        const result = await ingestObjectiveRawBatch(
+            clinician,
+            batch,
+            {
+                sessions,
+                assignments: assignedLookup(true),
+                rawIngestion,
+            },
+            trace,
+        );
+
+        expect(result.allowed).toBe(true);
+
+        if (!result.allowed) {
+            throw new Error("Expected out-of-order valid frames to be accepted");
+        }
+
+        expect(result.value.timing.timing_quality).toBe("limited");
+        expect(result.value.timing.warnings).toContain("out_of_order_esp_time");
+        expect(result.value.chunks[0].first_esp_time_ms).toBe(1000);
+        expect(result.value.chunks[0].last_esp_time_ms).toBe(1010);
+    });
+
     it("denies unassigned clinicians", async () => {
         const { sessions, session } = await createActiveSession(service);
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
