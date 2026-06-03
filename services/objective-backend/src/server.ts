@@ -6,6 +6,11 @@ import http, {
 import type { ObjectiveBackendConfig } from "./config.js";
 import { createObjectiveSafeErrorBody } from "./errors.js";
 import { createObjectiveHealthResponse } from "./health.js";
+import {
+    createDefaultObjectiveSessionRouteDependencies,
+    handleObjectiveSessionRoute,
+    type ObjectiveSessionRouteDependencies,
+} from "./sessionRoutes.js";
 import { createObjectiveTraceContext } from "./trace.js";
 
 type JsonBody = Record<string, unknown>;
@@ -70,8 +75,22 @@ export function handleObjectiveRequest(
 
 export function createObjectiveHttpServer(
     config: ObjectiveBackendConfig,
+    sessionDependencies: ObjectiveSessionRouteDependencies =
+        createDefaultObjectiveSessionRouteDependencies(),
 ): Server {
     return http.createServer((request, response) => {
-        handleObjectiveRequest(request, response, config);
+        void (async () => {
+            const handledSessionRoute = await handleObjectiveSessionRoute(
+                request,
+                response,
+                sessionDependencies,
+            );
+
+            if (handledSessionRoute) {
+                return;
+            }
+
+            handleObjectiveRequest(request, response, config);
+        })();
     });
 }

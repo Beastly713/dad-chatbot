@@ -47,10 +47,10 @@ export type ObjectiveGuardResult<T> =
       }
     | {
           allowed: false;
-          statusCode: 401 | 403;
+          statusCode: 400 | 401 | 403 | 404 | 409;
           code: string;
           message: string;
-          auditEvent: ObjectiveAuditReadyEvent;
+          auditEvent: ObjectiveAuditReadyEvent | null;
       };
 
 function firstHeaderValue(value: string | string[] | undefined): string | null {

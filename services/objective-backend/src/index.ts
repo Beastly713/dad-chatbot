@@ -12,6 +12,8 @@ export * from "./assignments.js";
 export * from "./visibility.js";
 export * from "./failClosed.js";
 export * from "./audit.js";
+export * from "./sessionLifecycle.js";
+export * from "./sessionRoutes.js";
 
 function isMainModule(): boolean {
     const entrypoint = process.argv[1];

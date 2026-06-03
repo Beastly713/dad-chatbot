@@ -50,7 +50,7 @@ describe("objective backend auth guards", () => {
 
         expect(result.statusCode).toBe(403);
         expect(result.code).toBe("objective_patient_denied");
-        expect(result.auditEvent.reason).toBe("patient_denied");
+        expect(result.auditEvent?.reason).toBe("patient_denied");
     });
 
     it("denies chatbot role explicitly", () => {
@@ -70,7 +70,7 @@ describe("objective backend auth guards", () => {
 
         expect(result.statusCode).toBe(403);
         expect(result.code).toBe("objective_chatbot_denied");
-        expect(result.auditEvent.reason).toBe("chatbot_denied");
+        expect(result.auditEvent?.reason).toBe("chatbot_denied");
     });
 
     it("denies unsupported roles", () => {

@@ -3,7 +3,7 @@ import { createObjectiveSafeErrorBody } from "./errors.js";
 import type { ObjectiveTraceContext } from "./trace.js";
 
 export type ObjectiveFailClosedResponse = {
-    statusCode: 401 | 403 | 500;
+    statusCode: 400 | 401 | 403 | 404 | 409 | 500;
     body: ReturnType<typeof createObjectiveSafeErrorBody>;
 };
 
