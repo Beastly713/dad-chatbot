@@ -139,6 +139,9 @@ describe("Stage 7 preprocessing boundary", () => {
     expect(serialized).not.toContain("model_version");
     expect(serialized).not.toContain("heart_rate");
     expect(serialized).not.toContain("spo2");
+    expect(serialized).not.toContain("oxygen");
+    expect(serialized).not.toContain("body_temperature");
+    expect(serialized).not.toContain("core_temperature");
 
     for (const window of windows) {
       expect(window.features).toBeDefined();

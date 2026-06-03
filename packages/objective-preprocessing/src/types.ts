@@ -123,9 +123,45 @@ export type ObjectiveGsrFeatureSet = {
   suppression: ObjectiveFeatureSuppressionState;
 };
 
+export type ObjectivePpgBestChannel = "max_red" | "max_ir" | "max_green" | null;
+
+export type ObjectivePpgFeatureSet = {
+  modality: "ppg";
+  best_channel: ObjectivePpgBestChannel;
+  pulse_rate_bpm: number | null;
+  pulse_interval_median_ms: number | null;
+  waveform_quality_score: number;
+  ecg_ppg_pulse_interval_agreement: number | null;
+  suppression: ObjectiveFeatureSuppressionState;
+};
+
+export type ObjectiveImuFeatureSet = {
+  modality: "imu";
+  motion_magnitude_mean: number | null;
+  motion_magnitude_max: number | null;
+  jerk_mean: number | null;
+  gyro_magnitude_mean: number | null;
+  stillness_fraction: number | null;
+  activity_like_confound_index: number;
+  suppression: ObjectiveFeatureSuppressionState;
+};
+
+export type ObjectiveTemperatureFeatureSet = {
+  modality: "temperature";
+  tmp117_trend_c_per_min: number | null;
+  tmp117_contact_shift_c: number | null;
+  mpu_board_heating_indicator_c_per_min: number | null;
+  local_temperature_quality_score: number;
+  board_temperature_quality_score: number;
+  suppression: ObjectiveFeatureSuppressionState;
+};
+
 export type ObjectiveFeatureMap = {
   ecg?: ObjectiveEcgFeatureSet;
   gsr?: ObjectiveGsrFeatureSet;
+  ppg?: ObjectivePpgFeatureSet;
+  imu?: ObjectiveImuFeatureSet;
+  temperature?: ObjectiveTemperatureFeatureSet;
 };
 
 export type ObjectiveFeatureWindowFoundation = {

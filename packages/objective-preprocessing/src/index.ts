@@ -1,3 +1,4 @@
 export * from "./types.js";
 export * from "./windowing.js";
 export * from "./ecgGsrFeatures.js";
+export * from "./ppgImuTemperatureFeatures.js";
