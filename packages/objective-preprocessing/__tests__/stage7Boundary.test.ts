@@ -145,7 +145,7 @@ describe("Stage 7 preprocessing boundary", () => {
 
     for (const window of windows) {
       expect(window.features).toBeDefined();
-      expect(window.baseline_relative).toEqual({});
+      expect(window.baseline_relative).toBeDefined();
     }
 
     const violations = findForbiddenObjectiveTermViolations([

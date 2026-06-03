@@ -156,6 +156,64 @@ export type ObjectiveTemperatureFeatureSet = {
   suppression: ObjectiveFeatureSuppressionState;
 };
 
+export type ObjectiveBaselineState = "available" | "limited" | "unavailable";
+
+export type ObjectiveBaselineQuality = {
+  state: ObjectiveBaselineState;
+  baseline_window_count: number;
+  usable_baseline_window_count: number;
+  quality_score: number;
+  reasons: string[];
+};
+
+export type ObjectiveBaselineFeatureSummary = {
+  ecg_median_hr_bpm: number | null;
+  ecg_mean_hr_bpm: number | null;
+  gsr_tonic_baseline_deviation_raw: number | null;
+  ppg_pulse_rate_bpm: number | null;
+  tmp117_trend_c_per_min: number | null;
+  motion_magnitude_mean: number | null;
+};
+
+export type ObjectiveSessionBaselineProfile = {
+  baseline_profile_id: string;
+  session_id: string;
+  source_type: string;
+  created_from_feature_window_ids: string[];
+  baseline_features: ObjectiveBaselineFeatureSummary;
+  baseline_quality: ObjectiveBaselineQuality;
+  visibility: ObjectivePreprocessingVisibility;
+};
+
+export type ObjectiveBaselineRelativeFeatureSet = {
+  baseline_state: ObjectiveBaselineState;
+  baseline_profile_id?: string;
+  readiness_confidence_modifier: number;
+  no_baseline_reason?: string;
+  ecg_median_hr_delta_bpm: number | null;
+  ecg_mean_hr_delta_bpm: number | null;
+  gsr_tonic_baseline_deviation_delta_raw: number | null;
+  ppg_pulse_rate_delta_bpm: number | null;
+  tmp117_trend_delta_c_per_min: number | null;
+  motion_magnitude_delta: number | null;
+};
+
+export type ObjectiveEcgPpgAgreementState =
+  | "agreement"
+  | "disagreement"
+  | "unavailable";
+
+export type ObjectiveCrossSignalFeatureSet = {
+  hr_gsr_agreement_index: number | null;
+  hr_gsr_agreement_state: "agreement" | "divergence" | "unavailable";
+  high_motion_confound_present: boolean;
+  motion_confound_index: number;
+  ecg_ppg_agreement_state: ObjectiveEcgPpgAgreementState;
+  ecg_ppg_agreement_value: number | null;
+  signal_conflict_score: number;
+  uncertainty_reasons: string[];
+};
+
 export type ObjectiveFeatureMap = {
   ecg?: ObjectiveEcgFeatureSet;
   gsr?: ObjectiveGsrFeatureSet;
@@ -203,7 +261,8 @@ export type ObjectiveFeatureWindowFoundation = {
   cadence: Record<ObjectivePreprocessingModality, ObjectiveModalityCadence>;
   buffers: Record<ObjectivePreprocessingModality, ObjectiveModalityBuffer>;
   features: ObjectiveFeatureMap;
-  baseline_relative: Record<string, never>;
+  baseline_relative: ObjectiveBaselineRelativeFeatureSet | Record<string, never>;
+  cross_signal?: ObjectiveCrossSignalFeatureSet;
   uncertainty_reasons: string[];
   visibility: ObjectivePreprocessingVisibility;
 };
