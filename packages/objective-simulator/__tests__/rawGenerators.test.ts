@@ -228,7 +228,7 @@ describe("objective simulator raw generators", () => {
     expect(first).toEqual(second);
   });
 
-  it("supports every Stage 6 scenario without artifact/dropout/reset injection", () => {
+  it("supports every Stage 6 scenario with schema-valid raw envelopes", () => {
     for (const scenarioId of OBJECTIVE_SIMULATOR_SCENARIO_IDS) {
       const timeline = generateObjectiveScenarioTimeline({
         scenario_id: scenarioId,
@@ -249,12 +249,17 @@ describe("objective simulator raw generators", () => {
       expect(batch.frames.length).toBeGreaterThan(0);
 
       for (const frame of batch.frames) {
-        for (const fieldName of RAW_SENSOR_FIELD_NAMES) {
-          expect(frame.frame[fieldName]).not.toBeUndefined();
-        }
+        expect(frame.frame.pc_timestamp).toBeTruthy();
+        expect(Number.isFinite(frame.frame.esp_time_ms)).toBe(true);
 
-        expect(frame.held_fields).toEqual([]);
-        expect(frame.stale_fields).toEqual([]);
+        const rawFieldState = [
+          ...frame.updated_fields,
+          ...frame.held_fields,
+          ...frame.stale_fields
+        ];
+
+        expect(rawFieldState).toContain("pc_timestamp");
+        expect(rawFieldState).toContain("esp_time_ms");
       }
     }
   });

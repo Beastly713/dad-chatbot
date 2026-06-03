@@ -17,6 +17,11 @@ import {
   type ObjectiveSimulatorTimeline,
   type ObjectiveSimulatorTimelinePhase
 } from "./timeline.js";
+import {
+  applyObjectiveSimulatorFrameInjections,
+  resolveObjectiveSimulatorEspTimeMs,
+  shouldEmitObjectiveSimulatorSample
+} from "./injections.js";
 
 export type ObjectiveRawSensorGeneratorInput = {
   esp_time_ms: number;
@@ -337,15 +342,33 @@ export function generateObjectiveRawFrameEnvelopes(
   const scenarioId: ObjectiveSimulatorScenarioId = options.timeline.scenario_id;
   const profile = getObjectiveSimulatorScenarioProfile(scenarioId);
   const frames: ObjectiveRawFrameEnvelope[] = [];
+  let sampleIndex = 0;
 
   for (
-    let espTimeMs = options.timeline.start_esp_time_ms;
-    espTimeMs < options.timeline.end_esp_time_ms;
-    espTimeMs += options.sample_interval_ms
+    let scheduledEspTimeMs = options.timeline.start_esp_time_ms;
+    scheduledEspTimeMs < options.timeline.end_esp_time_ms;
+    scheduledEspTimeMs += options.sample_interval_ms
   ) {
-    const phase = findPhaseForEspTime(options.timeline, espTimeMs);
+    const phase = findPhaseForEspTime(options.timeline, scheduledEspTimeMs);
+
+    if (
+      !shouldEmitObjectiveSimulatorSample({
+        phase,
+        scheduled_esp_time_ms: scheduledEspTimeMs,
+        sample_interval_ms: options.sample_interval_ms
+      })
+    ) {
+      sampleIndex += 1;
+      continue;
+    }
+
+    const effectiveEspTimeMs = resolveObjectiveSimulatorEspTimeMs(
+      options.timeline,
+      scheduledEspTimeMs
+    );
+
     const frame = generateObjectiveRawSensorFrame({
-      esp_time_ms: espTimeMs,
+      esp_time_ms: effectiveEspTimeMs,
       seed: options.timeline.seed,
       timeline: options.timeline,
       phase,
@@ -354,8 +377,19 @@ export function generateObjectiveRawFrameEnvelopes(
 
     frame.pc_timestamp = formatPcTimestamp(
       startPcTimestamp,
-      espTimeMs - options.timeline.start_esp_time_ms
+      scheduledEspTimeMs - options.timeline.start_esp_time_ms
     );
+
+    const injectedFrame = applyObjectiveSimulatorFrameInjections({
+      frame,
+      timeline: options.timeline,
+      phase,
+      scheduled_esp_time_ms: scheduledEspTimeMs,
+      effective_esp_time_ms: effectiveEspTimeMs,
+      sample_index: sampleIndex,
+      sample_interval_ms: options.sample_interval_ms,
+      seed: options.timeline.seed
+    });
 
     const envelope: ObjectiveRawFrameEnvelope = {
       session_id: options.session_id,
@@ -364,13 +398,14 @@ export function generateObjectiveRawFrameEnvelopes(
       device_id: options.device_id,
       device_boot_id: options.device_boot_id,
       ...(options.segment_id ? { segment_id: options.segment_id } : {}),
-      frame,
-      updated_fields: [...RAW_SENSOR_FIELD_NAMES],
-      held_fields: [],
-      stale_fields: []
+      frame: injectedFrame.frame,
+      updated_fields: injectedFrame.updated_fields,
+      held_fields: injectedFrame.held_fields,
+      stale_fields: injectedFrame.stale_fields
     };
 
     frames.push(assertObjectiveRawFrameEnvelope(envelope));
+    sampleIndex += 1;
   }
 
   if (frames.length === 0) {
