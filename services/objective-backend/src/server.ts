@@ -7,6 +7,11 @@ import type { ObjectiveBackendConfig } from "./config.js";
 import { createObjectiveSafeErrorBody } from "./errors.js";
 import { createObjectiveHealthResponse } from "./health.js";
 import {
+    createDefaultObjectiveRawIngestionRepository,
+    handleObjectiveRawIngestionRoute,
+    type ObjectiveRawIngestionRouteDependencies,
+} from "./rawIngestionRoutes.js";
+import {
     createDefaultObjectiveSessionRouteDependencies,
     handleObjectiveSessionRoute,
     type ObjectiveSessionRouteDependencies,
@@ -77,9 +82,23 @@ export function createObjectiveHttpServer(
     config: ObjectiveBackendConfig,
     sessionDependencies: ObjectiveSessionRouteDependencies =
         createDefaultObjectiveSessionRouteDependencies(),
+    rawIngestionDependencies: ObjectiveRawIngestionRouteDependencies = {
+        ...sessionDependencies,
+        rawIngestion: createDefaultObjectiveRawIngestionRepository(),
+    },
 ): Server {
     return http.createServer((request, response) => {
         void (async () => {
+            const handledRawIngestionRoute = await handleObjectiveRawIngestionRoute(
+                request,
+                response,
+                rawIngestionDependencies,
+            );
+
+            if (handledRawIngestionRoute) {
+                return;
+            }
+
             const handledSessionRoute = await handleObjectiveSessionRoute(
                 request,
                 response,
