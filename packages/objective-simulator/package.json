@@ -4,11 +4,15 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
+  "bin": {
+    "objective-simulator": "dist/src/cli.js"
+  },
   "scripts": {
     "test": "jest --runInBand",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "cli": "node dist/src/cli.js"
   },
   "dependencies": {
     "@dad-chatbot/objective-safety": "workspace:*",
