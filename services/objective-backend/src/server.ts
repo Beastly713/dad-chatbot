@@ -12,6 +12,10 @@ import {
     type ObjectiveRawIngestionRouteDependencies,
 } from "./rawIngestionRoutes.js";
 import {
+    handleObjectiveRawTraceabilityRoute,
+    type ObjectiveRawTraceabilityRouteDependencies,
+} from "./rawTraceabilityRoutes.js";
+import {
     createDefaultObjectiveSessionRouteDependencies,
     handleObjectiveSessionRoute,
     type ObjectiveSessionRouteDependencies,
@@ -86,6 +90,8 @@ export function createObjectiveHttpServer(
         ...sessionDependencies,
         rawIngestion: createDefaultObjectiveRawIngestionRepository(),
     },
+    rawTraceabilityDependencies: ObjectiveRawTraceabilityRouteDependencies =
+        rawIngestionDependencies,
 ): Server {
     return http.createServer((request, response) => {
         void (async () => {
@@ -96,6 +102,17 @@ export function createObjectiveHttpServer(
             );
 
             if (handledRawIngestionRoute) {
+                return;
+            }
+
+            const handledRawTraceabilityRoute =
+                await handleObjectiveRawTraceabilityRoute(
+                    request,
+                    response,
+                    rawTraceabilityDependencies,
+                );
+
+            if (handledRawTraceabilityRoute) {
                 return;
             }
 
