@@ -6,7 +6,9 @@ export default {
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
     "^@dad-chatbot/objective-safety$":
-      "<rootDir>/../objective-safety/src/index.ts"
+      "<rootDir>/../objective-safety/src/index.ts",
+    "^@dad-chatbot/objective-schemas$":
+      "<rootDir>/../objective-schemas/src/index.ts"
   },
   transform: {
     "^.+\\.tsx?$": [

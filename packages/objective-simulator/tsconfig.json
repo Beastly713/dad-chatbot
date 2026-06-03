@@ -12,7 +12,8 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@dad-chatbot/objective-safety": ["../objective-safety/src/index.ts"]
+      "@dad-chatbot/objective-safety": ["../objective-safety/src/index.ts"],
+      "@dad-chatbot/objective-schemas": ["../objective-schemas/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "__tests__/**/*.ts"]
