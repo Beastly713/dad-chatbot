@@ -145,6 +145,7 @@ describe("objective raw storage", () => {
             }),
         );
         expect(write.chunks[0].raw_payload).toHaveLength(2);
+        expect(write.chunks[0].segment_id).toBe("segment-1");
 
         expect(write.quarantined).toHaveLength(1);
         expect(write.quarantined[0]).toEqual(
@@ -158,6 +159,7 @@ describe("objective raw storage", () => {
                 ...visibility,
             }),
         );
+        expect(write.quarantined[0].segment_id).toBe("segment-1");
     });
 
     it("persists normalized records in memory with session traceability", async () => {

@@ -10,6 +10,11 @@ import {
     InMemoryObjectiveRawStorageRepository,
     type ObjectiveRawStorageRepository,
 } from "./rawStorage.js";
+import {
+    inferSegmentReason,
+    InMemoryObjectiveSegmentManager,
+    type ObjectiveSegmentManager,
+} from "./segmentManager.js";
 import type {
     ObjectiveSessionLifecycleDependencies,
     ObjectiveSessionRecord,
@@ -124,6 +129,7 @@ export type ObjectiveRawIngestionRepository = ObjectiveRawStorageRepository;
 export type ObjectiveRawIngestionDependencies =
     ObjectiveSessionLifecycleDependencies & {
         rawIngestion: ObjectiveRawIngestionRepository;
+        segmentManager?: ObjectiveSegmentManager;
         auditLogger?: ObjectiveAuditLogger;
     };
 
@@ -152,6 +158,8 @@ const FORBIDDEN_FRAME_KEYS = new Set([
 ]);
 
 export class InMemoryObjectiveRawIngestionRepository extends InMemoryObjectiveRawStorageRepository {}
+
+const defaultSegmentManager = new InMemoryObjectiveSegmentManager();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -381,9 +389,10 @@ function parseRawBatchInput(
     };
 }
 
-function buildIngestionResult(
+async function buildIngestionResult(
     input: ObjectiveRawBatchInput,
-): ObjectiveRawIngestionResult {
+    segmentManager: ObjectiveSegmentManager,
+): Promise<ObjectiveRawIngestionResult> {
     const acceptedFrames: ObjectiveRawSensorFrame[] = [];
     const quarantined: ObjectiveQuarantinedRawFrame[] = [];
 
@@ -418,24 +427,49 @@ function buildIngestionResult(
     const timing = analyzeObjectiveRawTiming(acceptedFrames);
     const partitions = partitionObjectiveFramesByTimingGaps(acceptedFrames);
 
-    const chunks: ObjectiveAcceptedRawChunk[] = partitions.map((partition) => ({
-        raw_chunk_id: randomUUID(),
-        batch_id: input.batch_id,
-        session_id: input.session_id,
-        source_type: input.source_type,
-        device_id: input.device_id,
-        device_boot_id: input.device_boot_id,
-        segment_id: input.segment_id,
-        chunk_index: partition.partition_index,
-        frame_count: partition.frames.length,
-        first_esp_time_ms: partition.first_esp_time_ms,
-        last_esp_time_ms: partition.last_esp_time_ms,
-        timing: analyzeObjectiveRawTiming(partition.frames),
-        frames: partition.frames,
-        clinician_visible: true,
-        patient_visible: false,
-        chatbot_visible: false,
-    }));
+    let currentSegment = await segmentManager.getCurrentSegment(input.session_id);
+    const chunks: ObjectiveAcceptedRawChunk[] = [];
+
+    for (const partition of partitions) {
+        const segmentReason = inferSegmentReason(
+            currentSegment,
+            input.device_boot_id,
+            partition.partition_index,
+        );
+
+        const segment = input.segment_id
+            ? {
+                  segment_id: input.segment_id,
+              }
+            : await segmentManager.assignSegment({
+                  sessionId: input.session_id,
+                  deviceBootId: input.device_boot_id,
+                  firstEspTimeMs: partition.first_esp_time_ms,
+                  lastEspTimeMs: partition.last_esp_time_ms,
+                  reason: segmentReason,
+              });
+
+        chunks.push({
+            raw_chunk_id: randomUUID(),
+            batch_id: input.batch_id,
+            session_id: input.session_id,
+            source_type: input.source_type,
+            device_id: input.device_id,
+            device_boot_id: input.device_boot_id,
+            segment_id: segment.segment_id,
+            chunk_index: partition.partition_index,
+            frame_count: partition.frames.length,
+            first_esp_time_ms: partition.first_esp_time_ms,
+            last_esp_time_ms: partition.last_esp_time_ms,
+            timing: analyzeObjectiveRawTiming(partition.frames),
+            frames: partition.frames,
+            clinician_visible: true,
+            patient_visible: false,
+            chatbot_visible: false,
+        });
+
+        currentSegment = await segmentManager.getCurrentSegment(input.session_id);
+    }
 
     return {
         batch_id: input.batch_id,
@@ -538,7 +572,10 @@ export async function ingestObjectiveRawBatch(
         };
     }
 
-    const result = buildIngestionResult(batchInput.value);
+    const result = await buildIngestionResult(
+        batchInput.value,
+        dependencies.segmentManager ?? defaultSegmentManager,
+    );
 
     await dependencies.rawIngestion.saveIngestionResult(result);
     await auditIngestion(dependencies.auditLogger, actor, result, trace);

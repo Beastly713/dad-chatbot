@@ -11,6 +11,10 @@ import {
     InMemoryObjectiveRawStorageRepository,
     type ObjectiveRawStorageRepository,
 } from "./rawStorage.js";
+import {
+    InMemoryObjectiveSegmentManager,
+    type ObjectiveSegmentManager,
+} from "./segmentManager.js";
 import type { ObjectiveSessionRepository } from "./sessionLifecycle.js";
 import { createObjectiveTraceContext } from "./trace.js";
 
@@ -18,9 +22,12 @@ export type ObjectiveRawIngestionRouteDependencies = {
     sessions: ObjectiveSessionRepository;
     assignments: ObjectiveAssignmentLookup;
     rawIngestion: ObjectiveRawStorageRepository;
+    segmentManager?: ObjectiveSegmentManager;
     auditLogger?: ObjectiveAuditLogger;
     now?: () => Date;
 };
+
+const defaultSegmentManager = new InMemoryObjectiveSegmentManager();
 
 export function createDefaultObjectiveRawIngestionRepository(): ObjectiveRawStorageRepository {
     return new InMemoryObjectiveRawStorageRepository();
@@ -112,6 +119,7 @@ function lifecycleDependencies(
         sessions: dependencies.sessions,
         assignments: dependencies.assignments,
         rawIngestion: dependencies.rawIngestion,
+        segmentManager: dependencies.segmentManager ?? defaultSegmentManager,
         auditLogger: dependencies.auditLogger,
         now: dependencies.now,
     };

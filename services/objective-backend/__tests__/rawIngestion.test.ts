@@ -11,6 +11,7 @@ import {
     InMemoryObjectiveSessionRepository,
     updateObjectiveSessionLifecycle,
 } from "../src/sessionLifecycle.js";
+import { InMemoryObjectiveSegmentManager } from "../src/segmentManager.js";
 import type { ObjectiveTraceContext } from "../src/trace.js";
 
 const trace: ObjectiveTraceContext = {
@@ -334,6 +335,128 @@ describe("objective raw ingestion", () => {
         expect(result.value.timing.warnings).toContain("out_of_order_esp_time");
         expect(result.value.chunks[0].first_esp_time_ms).toBe(1000);
         expect(result.value.chunks[0].last_esp_time_ms).toBe(1010);
+    });
+
+    it("assigns segment ids and creates timing-gap segments for split chunks", async () => {
+        const { sessions, session } = await createActiveSession(service);
+        const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
+        const segmentManager = new InMemoryObjectiveSegmentManager();
+
+        const batch = validBatch(session.session_id);
+
+        batch.frames = [
+            {
+                pc_timestamp: "2026-06-02T10:00:00.000Z",
+                esp_time_ms: 1000,
+                ecg_raw: 2900,
+                gsr_raw: 2405,
+            },
+            {
+                pc_timestamp: "2026-06-02T10:00:00.005Z",
+                esp_time_ms: 1005,
+                ecg_raw: 2910,
+                gsr_raw: 2406,
+            },
+            {
+                pc_timestamp: "2026-06-02T10:00:04.000Z",
+                esp_time_ms: 5000,
+                ecg_raw: 2920,
+                gsr_raw: 2407,
+            },
+        ];
+
+        const result = await ingestObjectiveRawBatch(
+            service,
+            batch,
+            {
+                sessions,
+                assignments: assignedLookup(false),
+                rawIngestion,
+                segmentManager,
+            },
+            trace,
+        );
+
+        expect(result.allowed).toBe(true);
+
+        if (!result.allowed) {
+            throw new Error("Expected service ingestion to allow");
+        }
+
+        expect(result.value.chunks).toHaveLength(2);
+        expect(result.value.chunks[0].segment_id).toEqual(expect.any(String));
+        expect(result.value.chunks[1].segment_id).toEqual(expect.any(String));
+        expect(result.value.chunks[0].segment_id).not.toBe(
+            result.value.chunks[1].segment_id,
+        );
+
+        const segments = await segmentManager.listSegmentsForSession(
+            session.session_id,
+        );
+
+        expect(segments.map((segment) => segment.reason)).toEqual([
+            "session_start",
+            "timing_gap",
+        ]);
+    });
+
+    it("creates a device-reset segment when device boot changes across batches", async () => {
+        const { sessions, session } = await createActiveSession(service);
+        const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
+        const segmentManager = new InMemoryObjectiveSegmentManager();
+
+        const firstBatch = validBatch(session.session_id);
+
+        const firstResult = await ingestObjectiveRawBatch(
+            service,
+            firstBatch,
+            {
+                sessions,
+                assignments: assignedLookup(false),
+                rawIngestion,
+                segmentManager,
+            },
+            trace,
+        );
+
+        expect(firstResult.allowed).toBe(true);
+
+        const secondBatch = {
+            ...validBatch(session.session_id),
+            batch_id: "batch-2",
+            device_boot_id: "boot-2",
+            frames: [
+                {
+                    pc_timestamp: "2026-06-02T10:00:10.000Z",
+                    esp_time_ms: 0,
+                    ecg_raw: 2900,
+                    gsr_raw: 2405,
+                },
+            ],
+        };
+
+        const secondResult = await ingestObjectiveRawBatch(
+            service,
+            secondBatch,
+            {
+                sessions,
+                assignments: assignedLookup(false),
+                rawIngestion,
+                segmentManager,
+            },
+            trace,
+        );
+
+        expect(secondResult.allowed).toBe(true);
+
+        const segments = await segmentManager.listSegmentsForSession(
+            session.session_id,
+        );
+
+        expect(segments.map((segment) => segment.reason)).toEqual([
+            "session_start",
+            "device_reset",
+        ]);
     });
 
     it("denies clinician raw ingestion even when assigned", async () => {
