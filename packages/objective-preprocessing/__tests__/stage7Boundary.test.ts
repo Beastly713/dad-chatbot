@@ -137,9 +137,13 @@ describe("Stage 7 preprocessing boundary", () => {
     expect(serialized).not.toContain("interpretation");
     expect(serialized).not.toContain("dashboard");
     expect(serialized).not.toContain("model_version");
-    expect(serialized).not.toContain("score");
     expect(serialized).not.toContain("heart_rate");
     expect(serialized).not.toContain("spo2");
+
+    for (const window of windows) {
+      expect(window.features).toBeDefined();
+      expect(window.baseline_relative).toEqual({});
+    }
 
     const violations = findForbiddenObjectiveTermViolations([
       {

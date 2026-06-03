@@ -94,6 +94,40 @@ export type ObjectiveModalityCadence = {
   max_delta_ms: number | null;
 };
 
+export type ObjectiveFeatureSuppressionState = {
+  suppressed: boolean;
+  reasons: string[];
+};
+
+export type ObjectiveEcgFeatureSet = {
+  modality: "ecg";
+  mean_hr_bpm: number | null;
+  median_hr_bpm: number | null;
+  hr_slope_bpm_per_min: number | null;
+  rr_validity_fraction: number;
+  rmssd_ms: number | null;
+  sdnn_ms: number | null;
+  r_peak_count: number;
+  r_peak_quality_score: number;
+  suppression: ObjectiveFeatureSuppressionState;
+};
+
+export type ObjectiveGsrFeatureSet = {
+  modality: "gsr";
+  tonic_trend_raw_per_min: number | null;
+  tonic_baseline_deviation_raw: number | null;
+  scr_count: number;
+  scr_rate_per_min: number | null;
+  phasic_area_raw_seconds: number | null;
+  gsr_quality_score: number;
+  suppression: ObjectiveFeatureSuppressionState;
+};
+
+export type ObjectiveFeatureMap = {
+  ecg?: ObjectiveEcgFeatureSet;
+  gsr?: ObjectiveGsrFeatureSet;
+};
+
 export type ObjectiveFeatureWindowFoundation = {
   schema_version: typeof OBJECTIVE_PREPROCESSING_WINDOW_SCHEMA_VERSION;
   preprocessing_version: typeof OBJECTIVE_PREPROCESSING_VERSION;
@@ -132,7 +166,7 @@ export type ObjectiveFeatureWindowFoundation = {
   >;
   cadence: Record<ObjectivePreprocessingModality, ObjectiveModalityCadence>;
   buffers: Record<ObjectivePreprocessingModality, ObjectiveModalityBuffer>;
-  features: Record<string, never>;
+  features: ObjectiveFeatureMap;
   baseline_relative: Record<string, never>;
   uncertainty_reasons: string[];
   visibility: ObjectivePreprocessingVisibility;
