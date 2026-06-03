@@ -165,7 +165,7 @@ describe("objective raw ingestion routes", () => {
         }
     });
 
-    it("accepts valid ingestion for an assigned clinician session", async () => {
+    it("accepts valid simulator service ingestion through the canonical batch endpoint", async () => {
         const sessions = new InMemoryObjectiveSessionRepository(
             () => new Date("2026-06-02T10:00:00.000Z"),
         );
@@ -176,12 +176,12 @@ describe("objective raw ingestion routes", () => {
             loadObjectiveBackendConfig({}),
             {
                 sessions,
-                assignments: makeAssignments(true),
+                assignments: makeAssignments(false),
                 auditLogger: logger,
             },
             {
                 sessions,
-                assignments: makeAssignments(true),
+                assignments: makeAssignments(false),
                 rawIngestion,
                 auditLogger: logger,
             },
@@ -189,9 +189,9 @@ describe("objective raw ingestion routes", () => {
         const port = await listen(server);
 
         try {
-            const headers = {
-                "x-objective-role": "clinician",
-                "x-objective-actor-id": "clinician-1",
+            const serviceHeaders = {
+                "x-objective-role": "service",
+                "x-objective-actor-id": "service-1",
             };
 
             const created = await requestJson(
@@ -202,7 +202,7 @@ describe("objective raw ingestion routes", () => {
                     patient_id: "patient-1",
                     source_type: "simulator",
                 },
-                headers,
+                serviceHeaders,
             );
 
             const session = (created.body.session ?? {}) as Record<string, unknown>;
@@ -213,15 +213,15 @@ describe("objective raw ingestion routes", () => {
                 "POST",
                 `/api/objective/sessions/${sessionId}/start`,
                 null,
-                headers,
+                serviceHeaders,
             );
 
             const ingested = await requestJson(
                 port,
                 "POST",
-                `/api/objective/sessions/${sessionId}/ingest`,
+                "/api/objective/ingest/batch",
                 validBatch(sessionId),
-                headers,
+                serviceHeaders,
             );
 
             expect(ingested.statusCode).toBe(202);
@@ -249,7 +249,7 @@ describe("objective raw ingestion routes", () => {
         }
     });
 
-    it("quarantines invalid frames and returns safe counts only", async () => {
+    it("denies clinician raw ingestion through the canonical batch endpoint", async () => {
         const sessions = new InMemoryObjectiveSessionRepository();
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
 
@@ -268,7 +268,7 @@ describe("objective raw ingestion routes", () => {
         const port = await listen(server);
 
         try {
-            const headers = {
+            const clinicianHeaders = {
                 "x-objective-role": "clinician",
                 "x-objective-actor-id": "clinician-1",
             };
@@ -281,7 +281,62 @@ describe("objective raw ingestion routes", () => {
                     patient_id: "patient-1",
                     source_type: "simulator",
                 },
-                headers,
+                clinicianHeaders,
+            );
+
+            const session = (created.body.session ?? {}) as Record<string, unknown>;
+            const sessionId = String(session.session_id);
+
+            const response = await requestJson(
+                port,
+                "POST",
+                "/api/objective/ingest/batch",
+                validBatch(sessionId),
+                clinicianHeaders,
+            );
+
+            expect(response.statusCode).toBe(403);
+            expect(JSON.stringify(response.body)).toContain(
+                "objective_ingest_service_required",
+            );
+        } finally {
+            await close(server);
+        }
+    });
+
+    it("quarantines invalid frames and returns safe counts only", async () => {
+        const sessions = new InMemoryObjectiveSessionRepository();
+        const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
+
+        const server = createObjectiveHttpServer(
+            loadObjectiveBackendConfig({}),
+            {
+                sessions,
+                assignments: makeAssignments(false),
+            },
+            {
+                sessions,
+                assignments: makeAssignments(false),
+                rawIngestion,
+            },
+        );
+        const port = await listen(server);
+
+        try {
+            const serviceHeaders = {
+                "x-objective-role": "service",
+                "x-objective-actor-id": "service-1",
+            };
+
+            const created = await requestJson(
+                port,
+                "POST",
+                "/api/objective/sessions",
+                {
+                    patient_id: "patient-1",
+                    source_type: "simulator",
+                },
+                serviceHeaders,
             );
 
             const session = (created.body.session ?? {}) as Record<string, unknown>;
@@ -300,7 +355,7 @@ describe("objective raw ingestion routes", () => {
                 "POST",
                 `/api/objective/sessions/${sessionId}/ingest`,
                 batch,
-                headers,
+                serviceHeaders,
             );
 
             expect(response.statusCode).toBe(202);
@@ -318,7 +373,7 @@ describe("objective raw ingestion routes", () => {
         }
     });
 
-    it("denies unassigned clinician ingestion", async () => {
+    it("denies clinician ingestion through the compatibility alias", async () => {
         const sessions = new InMemoryObjectiveSessionRepository();
 
         const server = createObjectiveHttpServer(
@@ -369,7 +424,7 @@ describe("objective raw ingestion routes", () => {
 
             expect(ingestResponse.statusCode).toBe(403);
             expect(JSON.stringify(ingestResponse.body)).toContain(
-                "objective_assignment_required",
+                "objective_ingest_service_required",
             );
         } finally {
             await close(server);

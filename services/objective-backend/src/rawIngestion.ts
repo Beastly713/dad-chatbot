@@ -489,6 +489,24 @@ export async function ingestObjectiveRawBatch(
         return batchInput;
     }
 
+    if (actor.role !== "service") {
+        return {
+            allowed: false,
+            statusCode: 403,
+            code: "objective_ingest_service_required",
+            message: "Objective raw ingestion requires a service producer identity.",
+            auditEvent: {
+                event_type: "access_denied",
+                actor_id: actor.actorId,
+                actor_role: actor.role,
+                session_id: batchInput.value.session_id,
+                reason: "unsupported_role",
+                request_id: trace.requestId,
+                trace_id: trace.traceId,
+            },
+        };
+    }
+
     const accessResult = await requireSessionAccess(
         actor,
         batchInput.value.session_id,

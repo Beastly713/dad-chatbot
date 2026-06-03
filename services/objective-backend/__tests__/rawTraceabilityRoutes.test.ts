@@ -191,19 +191,26 @@ describe("objective raw traceability routes", () => {
         const port = await listen(server);
 
         try {
-            const headers = {
+            const serviceHeaders = {
+                "x-objective-role": "service",
+                "x-objective-actor-id": "service-1",
+            };
+            const clinicianHeaders = {
                 "x-objective-role": "clinician",
                 "x-objective-actor-id": "clinician-1",
             };
 
-            const sessionId = await createStartedSessionAndIngest(port, headers);
+            const sessionId = await createStartedSessionAndIngest(
+                port,
+                serviceHeaders,
+            );
 
             const response = await requestJson(
                 port,
                 "GET",
                 `/api/objective/sessions/${sessionId}/raw/traceability`,
                 null,
-                headers,
+                clinicianHeaders,
             );
 
             expect(response.statusCode).toBe(200);
@@ -253,19 +260,26 @@ describe("objective raw traceability routes", () => {
         const port = await listen(server);
 
         try {
-            const headers = {
+            const serviceHeaders = {
+                "x-objective-role": "service",
+                "x-objective-actor-id": "service-1",
+            };
+            const clinicianHeaders = {
                 "x-objective-role": "clinician",
                 "x-objective-actor-id": "clinician-1",
             };
 
-            const sessionId = await createStartedSessionAndIngest(port, headers);
+            const sessionId = await createStartedSessionAndIngest(
+                port,
+                serviceHeaders,
+            );
 
             const response = await requestJson(
                 port,
                 "GET",
                 `/api/objective/sessions/${sessionId}/raw/quarantine-summary`,
                 null,
-                headers,
+                clinicianHeaders,
             );
 
             expect(response.statusCode).toBe(200);
@@ -361,19 +375,26 @@ describe("objective raw traceability routes", () => {
         const port = await listen(server);
 
         try {
-            const headers = {
+            const serviceHeaders = {
+                "x-objective-role": "service",
+                "x-objective-actor-id": "service-1",
+            };
+            const clinicianHeaders = {
                 "x-objective-role": "clinician",
                 "x-objective-actor-id": "clinician-1",
             };
 
-            const sessionId = await createStartedSessionAndIngest(port, headers);
+            const sessionId = await createStartedSessionAndIngest(
+                port,
+                serviceHeaders,
+            );
 
             const response = await requestJson(
                 port,
                 "GET",
                 `/api/objective/sessions/${sessionId}/raw/traceability`,
                 null,
-                headers,
+                clinicianHeaders,
             );
 
             expect(response.statusCode).toBe(403);

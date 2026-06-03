@@ -113,11 +113,11 @@ async function createActiveSession(actor: ObjectiveActor) {
 describe("objective raw ingestion", () => {
     it("accepts valid raw batches and stores accepted chunks", async () => {
         const { logger, sink } = createInMemoryObjectiveAuditLogger();
-        const { sessions, session } = await createActiveSession(clinician);
+        const { sessions, session } = await createActiveSession(service);
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
 
         const result = await ingestObjectiveRawBatch(
-            clinician,
+            service,
             validBatch(session.session_id),
             {
                 sessions,
@@ -167,7 +167,7 @@ describe("objective raw ingestion", () => {
     });
 
     it("quarantines invalid frames instead of silently dropping them", async () => {
-        const { sessions, session } = await createActiveSession(clinician);
+        const { sessions, session } = await createActiveSession(service);
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
 
         const batch = validBatch(session.session_id);
@@ -179,7 +179,7 @@ describe("objective raw ingestion", () => {
         } as never);
 
         const result = await ingestObjectiveRawBatch(
-            clinician,
+            service,
             batch,
             {
                 sessions,
@@ -213,7 +213,7 @@ describe("objective raw ingestion", () => {
     });
 
     it("splits accepted chunks across large ESP timing gaps", async () => {
-        const { sessions, session } = await createActiveSession(clinician);
+        const { sessions, session } = await createActiveSession(service);
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
 
         const batch = validBatch(session.session_id);
@@ -246,7 +246,7 @@ describe("objective raw ingestion", () => {
         ];
 
         const result = await ingestObjectiveRawBatch(
-            clinician,
+            service,
             batch,
             {
                 sessions,
@@ -293,7 +293,7 @@ describe("objective raw ingestion", () => {
     });
 
     it("accepts out-of-order valid frames but marks timing quality as limited", async () => {
-        const { sessions, session } = await createActiveSession(clinician);
+        const { sessions, session } = await createActiveSession(service);
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
 
         const batch = validBatch(session.session_id);
@@ -314,7 +314,7 @@ describe("objective raw ingestion", () => {
         ];
 
         const result = await ingestObjectiveRawBatch(
-            clinician,
+            service,
             batch,
             {
                 sessions,
@@ -336,7 +336,7 @@ describe("objective raw ingestion", () => {
         expect(result.value.chunks[0].last_esp_time_ms).toBe(1010);
     });
 
-    it("denies unassigned clinicians", async () => {
+    it("denies clinician raw ingestion even when assigned", async () => {
         const { sessions, session } = await createActiveSession(service);
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
 
@@ -354,18 +354,19 @@ describe("objective raw ingestion", () => {
         expect(result.allowed).toBe(false);
 
         if (result.allowed) {
-            throw new Error("Expected unassigned clinician to deny");
+            throw new Error("Expected clinician raw ingestion to be denied");
         }
 
-        expect(result.code).toBe("objective_assignment_required");
+        expect(result.statusCode).toBe(403);
+        expect(result.code).toBe("objective_ingest_service_required");
     });
 
     it("rejects batch source mismatch", async () => {
-        const { sessions, session } = await createActiveSession(clinician);
+        const { sessions, session } = await createActiveSession(service);
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
 
         const result = await ingestObjectiveRawBatch(
-            clinician,
+            service,
             {
                 ...validBatch(session.session_id),
                 source_type: "prototype_hardware",
@@ -388,11 +389,11 @@ describe("objective raw ingestion", () => {
     });
 
     it("rejects invalid batch envelopes before storing anything", async () => {
-        const { sessions, session } = await createActiveSession(clinician);
+        const { sessions, session } = await createActiveSession(service);
         const rawIngestion = new InMemoryObjectiveRawIngestionRepository();
 
         const result = await ingestObjectiveRawBatch(
-            clinician,
+            service,
             {
                 ...validBatch(session.session_id),
                 frames: [],

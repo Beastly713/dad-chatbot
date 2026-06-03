@@ -64,14 +64,34 @@ function readRequestBody(request: IncomingMessage): Promise<unknown> {
     });
 }
 
-function parseIngestPath(pathname: string): string | null {
+type ParsedIngestPath =
+    | {
+          mode: "canonical";
+          sessionIdFromPath: null;
+      }
+    | {
+          mode: "session_alias";
+          sessionIdFromPath: string;
+      };
+
+function parseIngestPath(pathname: string): ParsedIngestPath | null {
+    if (pathname === "/api/objective/ingest/batch") {
+        return {
+            mode: "canonical",
+            sessionIdFromPath: null,
+        };
+    }
+
     const match = /^\/api\/objective\/sessions\/([^/]+)\/ingest$/.exec(pathname);
 
     if (!match) {
         return null;
     }
 
-    return decodeURIComponent(match[1]);
+    return {
+        mode: "session_alias",
+        sessionIdFromPath: decodeURIComponent(match[1]),
+    };
 }
 
 async function recordDeniedAudit(
@@ -104,9 +124,9 @@ export async function handleObjectiveRawIngestionRoute(
 ): Promise<boolean> {
     const host = request.headers.host ?? "localhost";
     const url = new URL(request.url ?? "/", `http://${host}`);
-    const sessionId = parseIngestPath(url.pathname);
+    const ingestPath = parseIngestPath(url.pathname);
 
-    if (!sessionId) {
+    if (!ingestPath) {
         return false;
     }
 
@@ -161,7 +181,9 @@ export async function handleObjectiveRawIngestionRoute(
         typeof body === "object" && body !== null && !Array.isArray(body)
             ? {
                   ...body,
-                  session_id: (body as Record<string, unknown>).session_id ?? sessionId,
+                  session_id:
+                      (body as Record<string, unknown>).session_id ??
+                      ingestPath.sessionIdFromPath,
               }
             : body;
 
