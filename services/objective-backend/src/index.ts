@@ -17,6 +17,7 @@ export * from "./sessionRoutes.js";
 export * from "./rawIngestion.js";
 export * from "./rawIngestionRoutes.js";
 export * from "./rawTiming.js";
+export * from "./rawStorage.js";
 
 function isMainModule(): boolean {
     const entrypoint = process.argv[1];

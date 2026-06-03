@@ -4,24 +4,26 @@ import { parseObjectiveActorFromHeaders } from "./auth.js";
 import type { ObjectiveAssignmentLookup } from "./assignments.js";
 import { createObjectiveSafeErrorBody } from "./errors.js";
 import {
-    InMemoryObjectiveRawIngestionRepository,
     ingestObjectiveRawBatch,
     type ObjectiveRawIngestionDependencies,
-    type ObjectiveRawIngestionRepository,
 } from "./rawIngestion.js";
+import {
+    InMemoryObjectiveRawStorageRepository,
+    type ObjectiveRawStorageRepository,
+} from "./rawStorage.js";
 import type { ObjectiveSessionRepository } from "./sessionLifecycle.js";
 import { createObjectiveTraceContext } from "./trace.js";
 
 export type ObjectiveRawIngestionRouteDependencies = {
     sessions: ObjectiveSessionRepository;
     assignments: ObjectiveAssignmentLookup;
-    rawIngestion: ObjectiveRawIngestionRepository;
+    rawIngestion: ObjectiveRawStorageRepository;
     auditLogger?: ObjectiveAuditLogger;
     now?: () => Date;
 };
 
-export function createDefaultObjectiveRawIngestionRepository(): ObjectiveRawIngestionRepository {
-    return new InMemoryObjectiveRawIngestionRepository();
+export function createDefaultObjectiveRawIngestionRepository(): ObjectiveRawStorageRepository {
+    return new InMemoryObjectiveRawStorageRepository();
 }
 
 function writeJson(

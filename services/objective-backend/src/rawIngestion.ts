@@ -6,6 +6,10 @@ import {
     partitionObjectiveFramesByTimingGaps,
     type ObjectiveRawTimingAnalysis,
 } from "./rawTiming.js";
+import {
+    InMemoryObjectiveRawStorageRepository,
+    type ObjectiveRawStorageRepository,
+} from "./rawStorage.js";
 import type {
     ObjectiveSessionLifecycleDependencies,
     ObjectiveSessionRecord,
@@ -115,10 +119,7 @@ export type ObjectiveRawIngestionResult = {
     chatbot_visible: false;
 };
 
-export type ObjectiveRawIngestionRepository = {
-    saveIngestionResult(result: ObjectiveRawIngestionResult): Promise<void>;
-    getIngestionResults(sessionId: string): Promise<ObjectiveRawIngestionResult[]>;
-};
+export type ObjectiveRawIngestionRepository = ObjectiveRawStorageRepository;
 
 export type ObjectiveRawIngestionDependencies =
     ObjectiveSessionLifecycleDependencies & {
@@ -150,25 +151,7 @@ const FORBIDDEN_FRAME_KEYS = new Set([
     "stress_proven",
 ]);
 
-export class InMemoryObjectiveRawIngestionRepository
-    implements ObjectiveRawIngestionRepository
-{
-    private readonly results: ObjectiveRawIngestionResult[] = [];
-
-    async saveIngestionResult(result: ObjectiveRawIngestionResult): Promise<void> {
-        this.results.push(result);
-    }
-
-    async getIngestionResults(
-        sessionId: string,
-    ): Promise<ObjectiveRawIngestionResult[]> {
-        return this.results.filter((result) => result.session_id === sessionId);
-    }
-
-    clear(): void {
-        this.results.length = 0;
-    }
-}
+export class InMemoryObjectiveRawIngestionRepository extends InMemoryObjectiveRawStorageRepository {}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
