@@ -20,6 +20,7 @@ export * from "./rawTraceabilityRoutes.js";
 export * from "./rawTiming.js";
 export * from "./rawStorage.js";
 export * from "./featureStorage.js";
+export * from "./mlInferenceContract.js";
 export * from "./segmentManager.js";
 
 function isMainModule(): boolean {

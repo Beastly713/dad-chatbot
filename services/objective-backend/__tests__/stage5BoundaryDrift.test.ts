@@ -163,13 +163,12 @@ describe("Stage 5 objective ingestion boundary and drift regression", () => {
         expect(allSource).not.toContain("generateScenario");
     });
 
-    it("does not introduce ML, interpretation, dashboard, or chatbot wiring in service code", () => {
+    it("does not introduce model registry, interpretation, dashboard, or chatbot wiring in service code", () => {
         const allSource = collectSourceFiles(SRC_DIR)
             .map((file) => fs.readFileSync(file, "utf8"))
             .join("\n");
 
         expect(allSource).not.toContain("featureExtraction");
-        expect(allSource).not.toContain("mlInference");
         expect(allSource).not.toContain("modelRegistry");
         expect(allSource).not.toContain("interpretationRecord");
         expect(allSource).not.toContain("dashboard");
