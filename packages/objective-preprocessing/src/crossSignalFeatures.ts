@@ -60,7 +60,7 @@ function hrGsrState(
     return "unavailable";
   }
 
-  return index >= 0.55 ? "agreement" : "divergence";
+  return index >= 0.45 ? "agreement" : "divergence";
 }
 
 function ecgPpgAgreementState(
