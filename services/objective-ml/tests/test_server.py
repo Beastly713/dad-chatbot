@@ -46,6 +46,7 @@ class ObjectiveMlServerTest(unittest.TestCase):
         self.assertEqual(body["ok"], True)
         self.assertEqual(body["service"], "objective-ml")
         self.assertEqual(body["model_loaded"], False)
+        self.assertEqual(body["stub_model_loaded"], True)
         self.assertEqual(body["db_write_enabled"], False)
 
     def test_model_version_endpoint(self):
@@ -55,6 +56,7 @@ class ObjectiveMlServerTest(unittest.TestCase):
         body = response_body(handler)
 
         self.assertEqual(body["model_loaded"], False)
+        self.assertEqual(body["stub_model_loaded"], True)
         self.assertEqual(body["db_write_enabled"], False)
         self.assertEqual(
             body["allowed_target"],
@@ -66,6 +68,7 @@ class ObjectiveMlServerTest(unittest.TestCase):
             "request_id": "request-1",
             "feature_window_id": "feature-window-1",
             "session_id": "session-1",
+            "target": "baseline_relative_elevated_physiological_arousal_evidence",
             "feature_schema_version": "objective-feature-window-foundation-v1",
             "preprocessing_version": "objective-preprocessing-v1",
             "features": {},
@@ -101,11 +104,70 @@ class ObjectiveMlServerTest(unittest.TestCase):
             },
         )
 
+    def test_infer_endpoint_returns_elevated_stub_response(self):
+        request = {
+            "request_id": "request-1",
+            "feature_window_id": "feature-window-1",
+            "session_id": "session-1",
+            "target": "baseline_relative_elevated_physiological_arousal_evidence",
+            "feature_schema_version": "objective-feature-window-foundation-v1",
+            "preprocessing_version": "objective-preprocessing-v1",
+            "features": {
+                "ecg": {
+                    "median_hr_bpm": 88,
+                },
+                "gsr": {
+                    "tonic_mean_microsiemens": 3.1,
+                },
+            },
+            "baseline_relative": {
+                "baseline_state": "available",
+                "ecg": {
+                    "hr_delta_bpm": 12,
+                },
+                "gsr": {
+                    "tonic_delta_percent": 18,
+                },
+            },
+            "quality": {
+                "window_status": "ready",
+                "readiness_modifier": 1,
+            },
+            "missingness": {},
+            "modality_availability": {
+                "ecg": {
+                    "state": "available",
+                },
+                "gsr": {
+                    "state": "available",
+                },
+            },
+            "cross_signal": {
+                "signal_conflict_score": 0,
+                "high_motion_confound_present": False,
+            },
+            "uncertainty_reasons": [],
+            "timeout_ms": 1000,
+        }
+        handler = make_handler("POST", "/infer", request)
+
+        handler.do_POST()
+        body = response_body(handler)
+
+        self.assertEqual(body["ok"], True)
+        self.assertEqual(
+            body["inference"]["predicted_class"],
+            "elevated_arousal_evidence",
+        )
+        self.assertFalse(body["inference"]["visibility"]["patient_visible"])
+        self.assertFalse(body["inference"]["visibility"]["chatbot_visible"])
+
     def test_infer_endpoint_rejects_forbidden_request(self):
         request = {
             "request_id": "request-1",
             "feature_window_id": "feature-window-1",
             "session_id": "session-1",
+            "target": "baseline_relative_elevated_physiological_arousal_evidence",
             "feature_schema_version": "objective-feature-window-foundation-v1",
             "preprocessing_version": "objective-preprocessing-v1",
             "features": {

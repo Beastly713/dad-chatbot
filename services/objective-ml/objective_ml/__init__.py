@@ -12,12 +12,14 @@ from .contracts import (
     validate_inference_request,
     validate_inference_response,
 )
+from .model_stub import predict_rule_safe_inference
 
 __all__ = [
     "ALLOWED_ML_CLASSES",
     "ALLOWED_ML_TARGET",
     "ML_SERVICE_VERSION",
     "MODEL_VERSION",
+    "predict_rule_safe_inference",
     "validate_inference_request",
     "validate_inference_response",
 ]

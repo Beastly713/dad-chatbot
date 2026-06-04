@@ -9,6 +9,7 @@ function makeValidRequest() {
         request_id: "request-1",
         feature_window_id: "feature-window-1",
         session_id: "session-1",
+        target: OBJECTIVE_ML_ALLOWED_TARGET,
         feature_schema_version: "objective-feature-window-foundation-v1",
         preprocessing_version: "objective-preprocessing-v1",
         features: {
@@ -48,7 +49,7 @@ function makeValidResponse() {
         probability: 0,
         uncertainty_reasons: ["ml_model_not_loaded"],
         suppression_state: "suppressed_missing_data",
-        model_version: "objective-ml-no-model-scaffold-v1",
+        model_version: "objective-ml-rule-safe-stub-v1",
         visibility: {
             clinician_visible: true,
             patient_visible: false,
@@ -66,6 +67,7 @@ describe("objective ML inference contract", () => {
                 request_id: "request-1",
                 feature_window_id: "feature-window-1",
                 session_id: "session-1",
+                target: OBJECTIVE_ML_ALLOWED_TARGET,
                 timeout_ms: 1000,
             }),
         );
@@ -98,6 +100,22 @@ describe("objective ML inference contract", () => {
         ).toThrow("timeout_ms must be a positive integer");
     });
 
+    it("rejects unsupported safe and forbidden ML inference request targets", () => {
+        expect(() =>
+            validateObjectiveMlInferenceRequest({
+                ...makeValidRequest(),
+                target: "unsupported_safe_target",
+            }),
+        ).toThrow("target is not allowed");
+
+        expect(() =>
+            validateObjectiveMlInferenceRequest({
+                ...makeValidRequest(),
+                target: "relapse_risk",
+            }),
+        ).toThrow("forbidden");
+    });
+
     it("validates bounded ML inference responses", () => {
         const result = validateObjectiveMlInferenceResponse(makeValidResponse());
 
@@ -108,7 +126,7 @@ describe("objective ML inference contract", () => {
             probability: 0,
             uncertainty_reasons: ["ml_model_not_loaded"],
             suppression_state: "suppressed_missing_data",
-            model_version: "objective-ml-no-model-scaffold-v1",
+            model_version: "objective-ml-rule-safe-stub-v1",
             visibility: {
                 clinician_visible: true,
                 patient_visible: false,

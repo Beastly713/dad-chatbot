@@ -30,6 +30,7 @@ export type ObjectiveMlInferenceRequest = {
     request_id: string;
     feature_window_id: string;
     session_id: string;
+    target: ObjectiveMlTarget;
     feature_schema_version: string;
     preprocessing_version: string;
     features: ObjectiveMlJsonObject;
@@ -154,6 +155,7 @@ export function validateObjectiveMlInferenceRequest(
     assertNoForbiddenMlText(payload, "inference request");
 
     const record = payload as Record<string, unknown>;
+    const target = record.target ?? OBJECTIVE_ML_ALLOWED_TARGET;
 
     return {
         request_id: assertNonEmptyString(record.request_id, "request_id"),
@@ -162,6 +164,11 @@ export function validateObjectiveMlInferenceRequest(
             "feature_window_id",
         ),
         session_id: assertNonEmptyString(record.session_id, "session_id"),
+        target: assertAllowedValue(
+            target,
+            [OBJECTIVE_ML_ALLOWED_TARGET],
+            "target",
+        ),
         feature_schema_version: assertNonEmptyString(
             record.feature_schema_version,
             "feature_schema_version",

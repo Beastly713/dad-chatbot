@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 ML_SERVICE_VERSION = "objective-ml-service-scaffold-v1"
-MODEL_VERSION = "objective-ml-no-model-scaffold-v1"
+MODEL_VERSION = "objective-ml-rule-safe-stub-v1"
+SCAFFOLD_MODEL_VERSION = "objective-ml-no-model-scaffold-v1"
 
 ALLOWED_ML_TARGET = "baseline_relative_elevated_physiological_arousal_evidence"
 
@@ -84,6 +85,7 @@ def validate_inference_request(payload: Any) -> dict[str, Any]:
     cross_signal = payload.get("cross_signal")
     uncertainty_reasons = payload.get("uncertainty_reasons")
     timeout_ms = payload.get("timeout_ms", 1000)
+    target = payload.get("target", ALLOWED_ML_TARGET)
 
     for key, value in {
         "request_id": request_id,
@@ -94,6 +96,9 @@ def validate_inference_request(payload: Any) -> dict[str, Any]:
     }.items():
         if not _is_non_empty_string(value):
             raise ValueError(f"{key} must be a non-empty string")
+
+    if target != ALLOWED_ML_TARGET:
+        raise ValueError("target is not allowed")
 
     for key, value in {
         "features": features,
@@ -122,6 +127,7 @@ def validate_inference_request(payload: Any) -> dict[str, Any]:
         "session_id": session_id,
         "feature_schema_version": feature_schema_version,
         "preprocessing_version": preprocessing_version,
+        "target": target,
         "features": features,
         "baseline_relative": baseline_relative,
         "quality": quality,
@@ -206,7 +212,7 @@ def create_unavailable_scaffold_response() -> dict[str, Any]:
         "probability": 0.0,
         "uncertainty_reasons": ["ml_model_not_loaded"],
         "suppression_state": "suppressed_missing_data",
-        "model_version": MODEL_VERSION,
+        "model_version": SCAFFOLD_MODEL_VERSION,
         "visibility": {
             "clinician_visible": True,
             "patient_visible": False,

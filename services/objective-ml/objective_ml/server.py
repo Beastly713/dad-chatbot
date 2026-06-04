@@ -6,13 +6,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlparse
 
-from .contracts import (
-    ML_SERVICE_VERSION,
-    MODEL_VERSION,
-    create_unavailable_scaffold_response,
-    validate_inference_request,
-    validate_inference_response,
-)
+from .contracts import ML_SERVICE_VERSION, MODEL_VERSION
+from .model_stub import predict_rule_safe_inference
 
 
 class ObjectiveMlHandler(BaseHTTPRequestHandler):
@@ -55,6 +50,7 @@ class ObjectiveMlHandler(BaseHTTPRequestHandler):
                     "service_version": ML_SERVICE_VERSION,
                     "model_version": MODEL_VERSION,
                     "model_loaded": False,
+                    "stub_model_loaded": True,
                     "db_write_enabled": False,
                 },
             )
@@ -66,6 +62,7 @@ class ObjectiveMlHandler(BaseHTTPRequestHandler):
                 {
                     "model_version": MODEL_VERSION,
                     "model_loaded": False,
+                    "stub_model_loaded": True,
                     "allowed_target": "baseline_relative_elevated_physiological_arousal_evidence",
                     "db_write_enabled": False,
                 },
@@ -95,9 +92,7 @@ class ObjectiveMlHandler(BaseHTTPRequestHandler):
 
         try:
             request_payload = self._read_json_body()
-            validate_inference_request(request_payload)
-            response_payload = create_unavailable_scaffold_response()
-            validated_response = validate_inference_response(response_payload)
+            validated_response = predict_rule_safe_inference(request_payload)
         except ValueError as error:
             self._send_json(
                 400,

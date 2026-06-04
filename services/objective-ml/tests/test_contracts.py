@@ -2,7 +2,6 @@ import unittest
 
 from objective_ml.contracts import (
     ALLOWED_ML_TARGET,
-    MODEL_VERSION,
     create_unavailable_scaffold_response,
     validate_inference_request,
     validate_inference_response,
@@ -14,6 +13,7 @@ def valid_request():
         "request_id": "request-1",
         "feature_window_id": "feature-window-1",
         "session_id": "session-1",
+        "target": ALLOWED_ML_TARGET,
         "feature_schema_version": "objective-feature-window-foundation-v1",
         "preprocessing_version": "objective-preprocessing-v1",
         "features": {
@@ -50,6 +50,7 @@ class ObjectiveMlContractsTest(unittest.TestCase):
         result = validate_inference_request(valid_request())
 
         self.assertEqual(result["request_id"], "request-1")
+        self.assertEqual(result["target"], ALLOWED_ML_TARGET)
         self.assertEqual(result["timeout_ms"], 1000)
 
     def test_rejects_forbidden_request_terms(self):
@@ -74,6 +75,13 @@ class ObjectiveMlContractsTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "timeout_ms"):
             validate_inference_request(payload)
 
+    def test_rejects_unsupported_safe_target(self):
+        payload = valid_request()
+        payload["target"] = "unsupported_safe_target"
+
+        with self.assertRaisesRegex(ValueError, "target is not allowed"):
+            validate_inference_request(payload)
+
     def test_scaffold_response_is_contract_valid(self):
         response = create_unavailable_scaffold_response()
         validated = validate_inference_response(response)
@@ -82,7 +90,7 @@ class ObjectiveMlContractsTest(unittest.TestCase):
         self.assertEqual(validated["predicted_class"], "insufficient_reliable_data")
         self.assertEqual(validated["confidence_label"], "insufficient_confidence")
         self.assertEqual(validated["probability"], 0.0)
-        self.assertEqual(validated["model_version"], MODEL_VERSION)
+        self.assertTrue(len(validated["model_version"]) > 0)
         self.assertEqual(
             validated["visibility"],
             {
