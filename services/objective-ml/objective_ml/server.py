@@ -7,7 +7,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .contracts import ML_SERVICE_VERSION, MODEL_VERSION
-from .model_stub import predict_rule_safe_inference
+from .model_pipeline import load_model_card, load_model_registry, predict_classical_pipeline
 
 
 class ObjectiveMlHandler(BaseHTTPRequestHandler):
@@ -49,21 +49,27 @@ class ObjectiveMlHandler(BaseHTTPRequestHandler):
                     "service": "objective-ml",
                     "service_version": ML_SERVICE_VERSION,
                     "model_version": MODEL_VERSION,
-                    "model_loaded": False,
+                    "model_loaded": True,
                     "stub_model_loaded": True,
+                    "classical_pipeline_loaded": True,
                     "db_write_enabled": False,
                 },
             )
             return
 
         if path == "/model/version":
+            registry = load_model_registry()
+            model_card = load_model_card()
             self._send_json(
                 200,
                 {
                     "model_version": MODEL_VERSION,
-                    "model_loaded": False,
+                    "model_loaded": True,
                     "stub_model_loaded": True,
+                    "classical_pipeline_loaded": True,
                     "allowed_target": "baseline_relative_elevated_physiological_arousal_evidence",
+                    "registry": registry,
+                    "model_card": model_card,
                     "db_write_enabled": False,
                 },
             )
@@ -92,7 +98,7 @@ class ObjectiveMlHandler(BaseHTTPRequestHandler):
 
         try:
             request_payload = self._read_json_body()
-            validated_response = predict_rule_safe_inference(request_payload)
+            validated_response = predict_classical_pipeline(request_payload)
         except ValueError as error:
             self._send_json(
                 400,

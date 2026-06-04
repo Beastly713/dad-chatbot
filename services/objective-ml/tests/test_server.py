@@ -45,8 +45,9 @@ class ObjectiveMlServerTest(unittest.TestCase):
 
         self.assertEqual(body["ok"], True)
         self.assertEqual(body["service"], "objective-ml")
-        self.assertEqual(body["model_loaded"], False)
+        self.assertEqual(body["model_loaded"], True)
         self.assertEqual(body["stub_model_loaded"], True)
+        self.assertEqual(body["classical_pipeline_loaded"], True)
         self.assertEqual(body["db_write_enabled"], False)
 
     def test_model_version_endpoint(self):
@@ -55,8 +56,11 @@ class ObjectiveMlServerTest(unittest.TestCase):
         handler.do_GET()
         body = response_body(handler)
 
-        self.assertEqual(body["model_loaded"], False)
+        self.assertEqual(body["model_loaded"], True)
         self.assertEqual(body["stub_model_loaded"], True)
+        self.assertEqual(body["classical_pipeline_loaded"], True)
+        self.assertIn("registry", body)
+        self.assertIn("model_card", body)
         self.assertEqual(body["db_write_enabled"], False)
         self.assertEqual(
             body["allowed_target"],
@@ -115,13 +119,34 @@ class ObjectiveMlServerTest(unittest.TestCase):
             "features": {
                 "ecg": {
                     "median_hr_bpm": 88,
+                    "r_peak_quality_score": 0.9,
+                    "suppression": {
+                        "suppressed": False,
+                        "reasons": [],
+                    },
                 },
                 "gsr": {
                     "tonic_mean_microsiemens": 3.1,
+                    "gsr_quality_score": 0.9,
+                    "suppression": {
+                        "suppressed": False,
+                        "reasons": [],
+                    },
+                },
+                "ppg": {
+                    "waveform_quality_score": 0.8,
+                    "suppression": {
+                        "suppressed": False,
+                        "reasons": [],
+                    },
                 },
             },
             "baseline_relative": {
                 "baseline_state": "available",
+                "readiness_confidence_modifier": 1,
+                "ecg_median_hr_delta_bpm": 24,
+                "gsr_tonic_baseline_deviation_delta_raw": 60,
+                "ppg_pulse_rate_delta_bpm": 18,
                 "ecg": {
                     "hr_delta_bpm": 12,
                 },
@@ -145,6 +170,7 @@ class ObjectiveMlServerTest(unittest.TestCase):
             "cross_signal": {
                 "signal_conflict_score": 0,
                 "high_motion_confound_present": False,
+                "motion_confound_index": 0.1,
             },
             "uncertainty_reasons": [],
             "timeout_ms": 1000,
@@ -158,6 +184,10 @@ class ObjectiveMlServerTest(unittest.TestCase):
         self.assertEqual(
             body["inference"]["predicted_class"],
             "elevated_arousal_evidence",
+        )
+        self.assertEqual(
+            body["inference"]["model_version"],
+            "objective-ml-classical-tabular-v1",
         )
         self.assertFalse(body["inference"]["visibility"]["patient_visible"])
         self.assertFalse(body["inference"]["visibility"]["chatbot_visible"])

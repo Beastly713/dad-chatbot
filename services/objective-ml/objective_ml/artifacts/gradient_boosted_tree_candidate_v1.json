@@ -1,0 +1,45 @@
+{
+  "model_version": "gradient_boosted_tree_candidate_v1",
+  "model_family": "gradient_boosted_tree_candidate",
+  "feature_vector_version": "objective-feature-vector-v1",
+  "target": "baseline_relative_elevated_physiological_arousal_evidence",
+  "allowed_classes": [
+    "low_or_baseline_arousal_evidence",
+    "elevated_arousal_evidence",
+    "recovery_cooldown",
+    "insufficient_reliable_data"
+  ],
+  "rules": [
+    {
+      "class": "elevated_arousal_evidence",
+      "conditions": [
+        ["ecg_median_hr_delta_bpm", ">=", 10],
+        ["gsr_tonic_baseline_deviation_delta_raw", ">=", 15],
+        ["motion_confound_index", "<", 0.45],
+        ["signal_conflict_score", "<", 0.5]
+      ],
+      "score": 0.72
+    },
+    {
+      "class": "recovery_cooldown",
+      "conditions": [
+        ["ecg_median_hr_delta_bpm", "<=", -8],
+        ["gsr_tonic_baseline_deviation_delta_raw", "<=", -10],
+        ["motion_confound_index", "<", 0.45],
+        ["signal_conflict_score", "<", 0.5]
+      ],
+      "score": 0.62
+    },
+    {
+      "class": "low_or_baseline_arousal_evidence",
+      "conditions": [
+        ["abs_ecg_median_hr_delta_bpm", "<=", 8],
+        ["abs_gsr_tonic_baseline_deviation_delta_raw", "<=", 12],
+        ["signal_conflict_score", "<", 0.5]
+      ],
+      "score": 0.66
+    }
+  ],
+  "fallback_class": "low_or_baseline_arousal_evidence",
+  "fallback_score": 0.52
+}

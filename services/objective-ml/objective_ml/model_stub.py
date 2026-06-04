@@ -4,12 +4,12 @@ from typing import Any
 
 from .contracts import (
     ALLOWED_ML_TARGET,
-    MODEL_VERSION,
+    RULE_SAFE_STUB_MODEL_VERSION,
     validate_inference_request,
     validate_inference_response,
 )
 
-STUB_VERSION = MODEL_VERSION
+STUB_VERSION = RULE_SAFE_STUB_MODEL_VERSION
 
 
 def _as_object(value: Any) -> dict[str, Any]:

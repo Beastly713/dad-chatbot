@@ -12,14 +12,28 @@ from .contracts import (
     validate_inference_request,
     validate_inference_response,
 )
+from .model_pipeline import (
+    load_model_card,
+    load_model_registry,
+    predict_classical_pipeline,
+    validate_model_artifacts,
+)
 from .model_stub import predict_rule_safe_inference
+from .vectorizer import FEATURE_NAMES, FEATURE_VECTOR_VERSION, build_feature_vector
 
 __all__ = [
     "ALLOWED_ML_CLASSES",
     "ALLOWED_ML_TARGET",
+    "FEATURE_NAMES",
+    "FEATURE_VECTOR_VERSION",
     "ML_SERVICE_VERSION",
     "MODEL_VERSION",
+    "build_feature_vector",
+    "load_model_card",
+    "load_model_registry",
+    "predict_classical_pipeline",
     "predict_rule_safe_inference",
+    "validate_model_artifacts",
     "validate_inference_request",
     "validate_inference_response",
 ]

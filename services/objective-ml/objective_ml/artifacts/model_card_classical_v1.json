@@ -1,0 +1,26 @@
+{
+  "model_version": "objective-ml-classical-tabular-v1",
+  "model_family": "gated_classical_ensemble",
+  "validation_status": "dev_only",
+  "target": "baseline_relative_elevated_physiological_arousal_evidence",
+  "intended_use": "Clinician-facing, non-diagnostic physiological evidence classification for engineering validation.",
+  "forbidden_use": "Not for clinical decisioning, care planning, urgent-event detection, patient-facing messaging, or assistant behavior.",
+  "training_dataset_refs": [
+    "simulated_engineering_windows_v1",
+    "future_public_dataset_replay_adapter"
+  ],
+  "feature_vector_version": "objective-feature-vector-v1",
+  "preprocessing_version": "objective-preprocessing-v1",
+  "feature_schema_version": "objective-feature-window-foundation-v1",
+  "calibration_version": "dev_static_thresholds_v1",
+  "known_limitations": [
+    "Static artifact scaffold, not a clinically validated model.",
+    "Uses engineered feature-window inputs only.",
+    "Suppresses when baseline, quality, motion, or conflict gates are not reliable."
+  ],
+  "visibility": {
+    "clinician_visible": true,
+    "patient_visible": false,
+    "chatbot_visible": false
+  }
+}

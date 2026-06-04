@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 ML_SERVICE_VERSION = "objective-ml-service-scaffold-v1"
-MODEL_VERSION = "objective-ml-rule-safe-stub-v1"
+MODEL_VERSION = "objective-ml-classical-tabular-v1"
+RULE_SAFE_STUB_MODEL_VERSION = "objective-ml-rule-safe-stub-v1"
 SCAFFOLD_MODEL_VERSION = "objective-ml-no-model-scaffold-v1"
 
 ALLOWED_ML_TARGET = "baseline_relative_elevated_physiological_arousal_evidence"
