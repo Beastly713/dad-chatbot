@@ -26,6 +26,8 @@ export * from "./mlInferenceStorage.js";
 export * from "./interpretationStorage.js";
 export * from "./segmentManager.js";
 export * from "./streamTokens.js";
+export * from "./streamEvents.js";
+export * from "./streamRoutes.js";
 
 function isMainModule(): boolean {
     const entrypoint = process.argv[1];

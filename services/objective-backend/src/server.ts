@@ -20,6 +20,11 @@ import {
     handleObjectiveSessionRoute,
     type ObjectiveSessionRouteDependencies,
 } from "./sessionRoutes.js";
+import {
+    createDefaultObjectiveStreamRouteDependencies,
+    handleObjectiveStreamUpgrade,
+    type ObjectiveStreamRouteDependencies,
+} from "./streamRoutes.js";
 import { createObjectiveTraceContext } from "./trace.js";
 
 type JsonBody = Record<string, unknown>;
@@ -92,8 +97,10 @@ export function createObjectiveHttpServer(
     },
     rawTraceabilityDependencies: ObjectiveRawTraceabilityRouteDependencies =
         rawIngestionDependencies,
+    streamDependencies: ObjectiveStreamRouteDependencies =
+        createDefaultObjectiveStreamRouteDependencies(),
 ): Server {
-    return http.createServer((request, response) => {
+    const server = http.createServer((request, response) => {
         void (async () => {
             const handledRawIngestionRoute = await handleObjectiveRawIngestionRoute(
                 request,
@@ -129,4 +136,54 @@ export function createObjectiveHttpServer(
             handleObjectiveRequest(request, response, config);
         })();
     });
+
+    server.on("upgrade", (request, socket, head) => {
+        void (async () => {
+            try {
+                const handledStreamUpgrade = await handleObjectiveStreamUpgrade(
+                    request,
+                    socket,
+                    head,
+                    streamDependencies,
+                );
+
+                if (!handledStreamUpgrade) {
+                    socket.write(
+                        [
+                            "HTTP/1.1 404 Not Found",
+                            "content-type: application/json; charset=utf-8",
+                            "connection: close",
+                            "",
+                            JSON.stringify({
+                                error: {
+                                    code: "objective_route_not_found",
+                                    message: "Objective service route not found.",
+                                },
+                            }),
+                        ].join("\r\n"),
+                    );
+                    socket.end();
+                }
+            } catch {
+                socket.write(
+                    [
+                        "HTTP/1.1 500 Internal Server Error",
+                        "content-type: application/json; charset=utf-8",
+                        "connection: close",
+                        "",
+                        JSON.stringify({
+                            error: {
+                                code: "objective_internal_error",
+                                message:
+                                    "Objective service request could not be completed safely.",
+                            },
+                        }),
+                    ].join("\r\n"),
+                );
+                socket.end();
+            }
+        })();
+    });
+
+    return server;
 }
