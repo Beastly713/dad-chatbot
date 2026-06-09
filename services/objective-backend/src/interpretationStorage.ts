@@ -225,6 +225,49 @@ function assertNoForbiddenText(value: unknown, name: string): void {
     }
 }
 
+function assertDecisionPayloadClinicianOnlyVisibility(
+    payload: JsonObject,
+): JsonObject {
+    const visibility = payload.visibility;
+
+    if (visibility === undefined) {
+        return payload;
+    }
+
+    if (
+        typeof visibility !== "object" ||
+        visibility === null ||
+        Array.isArray(visibility)
+    ) {
+        throw new Error("decision_payload contains forbidden visibility");
+    }
+
+    const visibilityFlags = visibility as Record<string, unknown>;
+
+    if (
+        visibilityFlags.clinician_visible !== undefined &&
+        visibilityFlags.clinician_visible !== true
+    ) {
+        throw new Error("decision_payload contains forbidden visibility");
+    }
+
+    if (
+        visibilityFlags.patient_visible !== undefined &&
+        visibilityFlags.patient_visible !== false
+    ) {
+        throw new Error("decision_payload contains forbidden visibility");
+    }
+
+    if (
+        visibilityFlags.chatbot_visible !== undefined &&
+        visibilityFlags.chatbot_visible !== false
+    ) {
+        throw new Error("decision_payload contains forbidden visibility");
+    }
+
+    return payload;
+}
+
 function assertClinicianOnlyVisibility(
     input:
         | Pick<
@@ -365,7 +408,9 @@ function normalizeInterpretationInput(
             SOURCE_BANNERS,
             "source_banner",
         ),
-        decision_payload: assertJsonObject(input.decision_payload, "decision_payload"),
+        decision_payload: assertDecisionPayloadClinicianOnlyVisibility(
+            assertJsonObject(input.decision_payload, "decision_payload"),
+        ),
         ...(input.summary_payload
             ? { summary_payload: normalizeSummary(input.summary_payload) }
             : {}),
