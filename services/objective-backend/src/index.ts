@@ -23,6 +23,7 @@ export * from "./featureStorage.js";
 export * from "./mlInferenceContract.js";
 export * from "./mlInferenceClient.js";
 export * from "./mlInferenceStorage.js";
+export * from "./interpretationStorage.js";
 export * from "./segmentManager.js";
 
 function isMainModule(): boolean {
