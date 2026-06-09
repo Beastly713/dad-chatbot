@@ -126,3 +126,36 @@ export type ObjectiveInterpretationDecision = {
   };
   visibility: ObjectiveInterpretationVisibility;
 };
+
+export const OBJECTIVE_SUMMARY_TEMPLATE_VERSION =
+  "objective-summary-template-v1" as const;
+
+export const OBJECTIVE_SUMMARY_TEMPLATE_IDS = [
+  "baseline_or_low_arousal_summary",
+  "elevated_arousal_summary",
+  "recovery_cooldown_summary",
+  "insufficient_data_summary",
+  "quality_suppressed_summary",
+  "motion_confounded_summary",
+  "signal_conflict_summary"
+] as const;
+
+export type ObjectiveSummaryTemplateId =
+  (typeof OBJECTIVE_SUMMARY_TEMPLATE_IDS)[number];
+
+export type ObjectiveInterpretationSummary = {
+  summary_version: typeof OBJECTIVE_SUMMARY_TEMPLATE_VERSION;
+  template_id: ObjectiveSummaryTemplateId;
+  interpretation_label: ObjectiveInterpretationLabel;
+  evidence_level: ObjectiveEvidenceLevel;
+  confidence_label: ObjectiveConfidenceLabel;
+  suppression_state: ObjectiveInterpretationSuppressionState;
+  title: string;
+  headline: string;
+  detail_lines: string[];
+  caution_lines: string[];
+  review_focus: string[];
+  rendered_summary_text: string;
+  trace: ObjectiveInterpretationDecision["trace"];
+  visibility: ObjectiveInterpretationVisibility;
+};
