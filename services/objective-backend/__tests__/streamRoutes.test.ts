@@ -7,7 +7,10 @@ import {
     createObjectiveHeartbeatStreamEvent,
     InMemoryObjectiveClinicianStreamHub,
 } from "../src/streamEvents.js";
-import { handleObjectiveStreamUpgrade } from "../src/streamRoutes.js";
+import {
+    handleObjectiveStreamUpgrade,
+    type ObjectiveStreamRouteDependencies,
+} from "../src/streamRoutes.js";
 import { generateObjectiveStreamToken } from "../src/streamTokens.js";
 import type { ObjectiveTraceContext } from "../src/trace.js";
 
@@ -66,6 +69,19 @@ function makeLookup(active: boolean): ObjectiveAssignmentLookup {
                 status: "active",
             };
         },
+    };
+}
+
+function makeDependencies(
+    streamHub: InMemoryObjectiveClinicianStreamHub =
+        new InMemoryObjectiveClinicianStreamHub(),
+    activeAssignment = true,
+): ObjectiveStreamRouteDependencies {
+    return {
+        streamTokenSecret: secret,
+        streamHub,
+        assignmentLookup: makeLookup(activeAssignment),
+        assignmentRecheckIntervalMs: 0,
     };
 }
 
@@ -128,10 +144,7 @@ describe("objective clinician WebSocket stream route", () => {
             ),
             socket as never,
             Buffer.alloc(0),
-            {
-                streamTokenSecret: secret,
-                streamHub: hub,
-            },
+            makeDependencies(hub),
         );
 
         expect(handled).toBe(true);
@@ -154,10 +167,7 @@ describe("objective clinician WebSocket stream route", () => {
             ),
             socket as never,
             Buffer.alloc(0),
-            {
-                streamTokenSecret: secret,
-                streamHub: hub,
-            },
+            makeDependencies(hub),
         );
 
         const deliveredCount = hub.publish(
@@ -181,10 +191,7 @@ describe("objective clinician WebSocket stream route", () => {
             ),
             socket as never,
             Buffer.alloc(0),
-            {
-                streamTokenSecret: secret,
-                streamHub: hub,
-            },
+            makeDependencies(hub),
         );
 
         const heartbeatDelivered = hub.publish(
@@ -203,8 +210,7 @@ describe("objective clinician WebSocket stream route", () => {
             socket as never,
             Buffer.alloc(0),
             {
-                streamTokenSecret: secret,
-                streamHub: new InMemoryObjectiveClinicianStreamHub(),
+                ...makeDependencies(),
                 auditLogger: logger,
             },
         );
@@ -239,10 +245,7 @@ describe("objective clinician WebSocket stream route", () => {
                 ),
                 socket as never,
                 Buffer.alloc(0),
-                {
-                    streamTokenSecret: secret,
-                    streamHub: new InMemoryObjectiveClinicianStreamHub(),
-                },
+                makeDependencies(),
             );
 
             expect(handled).toBe(true);
@@ -261,15 +264,30 @@ describe("objective clinician WebSocket stream route", () => {
             ),
             socket as never,
             Buffer.alloc(0),
-            {
-                streamTokenSecret: secret,
-                streamHub: new InMemoryObjectiveClinicianStreamHub(),
-            },
+            makeDependencies(),
         );
 
         expect(handled).toBe(true);
         expect(socket.text()).toContain("403 Forbidden");
         expect(socket.text()).toContain("objective_stream_token_context_mismatch");
+    });
+
+    it("rejects tokens when assignment is no longer active at connect time", async () => {
+        const token = await issueToken();
+        const socket = new MockSocket();
+
+        const handled = await handleObjectiveStreamUpgrade(
+            makeUpgradeRequest(
+                `/api/objective/sessions/session-1/stream?token=${token}`,
+            ),
+            socket as never,
+            Buffer.alloc(0),
+            makeDependencies(new InMemoryObjectiveClinicianStreamHub(), false),
+        );
+
+        expect(handled).toBe(true);
+        expect(socket.text()).toContain("403 Forbidden");
+        expect(socket.text()).toContain("objective_stream_assignment_inactive");
     });
 
     it("returns false for non-stream upgrade paths", async () => {
@@ -279,10 +297,7 @@ describe("objective clinician WebSocket stream route", () => {
             makeUpgradeRequest("/api/objective/other"),
             socket as never,
             Buffer.alloc(0),
-            {
-                streamTokenSecret: secret,
-                streamHub: new InMemoryObjectiveClinicianStreamHub(),
-            },
+            makeDependencies(),
         );
 
         expect(handled).toBe(false);

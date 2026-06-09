@@ -34,6 +34,24 @@ export type ObjectiveClinicianStreamEvent<
     visibility: ObjectiveStreamVisibility;
 };
 
+export type ObjectiveStreamReplayMode = "none" | "latest";
+
+export type ObjectiveClinicianStreamSubscriber = {
+    allowedScopes: ReadonlySet<ObjectiveClinicianStreamEventType>;
+    send(event: ObjectiveClinicianStreamEvent): void;
+    close?(event: ObjectiveClinicianStreamEvent): void;
+    isAuthorized?(): boolean | Promise<boolean>;
+    onAuthorizationRevoked?(): void | Promise<void>;
+};
+
+export type ObjectiveStreamReplaySnapshot = {
+    session_id: string;
+    replay_mode: ObjectiveStreamReplayMode;
+    event_count: number;
+    events: ObjectiveClinicianStreamEvent[];
+    visibility: ObjectiveStreamVisibility;
+};
+
 export type ObjectiveChartSafeSample = {
     t_ms: number;
     relative_time_ms?: number;
@@ -496,18 +514,17 @@ export function serializeObjectiveClinicianStreamEvent(
 export class InMemoryObjectiveClinicianStreamHub {
     private readonly subscribersBySession = new Map<
         string,
-        Set<{
-            allowedScopes: ReadonlySet<ObjectiveClinicianStreamEventType>;
-            send(event: ObjectiveClinicianStreamEvent): void;
-        }>
+        Set<ObjectiveClinicianStreamSubscriber>
+    >();
+
+    private readonly latestEventsBySession = new Map<
+        string,
+        Map<ObjectiveClinicianStreamEventType, ObjectiveClinicianStreamEvent>
     >();
 
     subscribe(
         sessionId: string,
-        subscriber: {
-            allowedScopes: ReadonlySet<ObjectiveClinicianStreamEventType>;
-            send(event: ObjectiveClinicianStreamEvent): void;
-        },
+        subscriber: ObjectiveClinicianStreamSubscriber,
     ): () => void {
         const normalizedSessionId = assertNonEmptyString(sessionId, "session_id");
         const subscribers =
@@ -527,6 +544,7 @@ export class InMemoryObjectiveClinicianStreamHub {
 
     publish(event: ObjectiveClinicianStreamEvent): number {
         const safeEvent = serializeObjectiveClinicianStreamEvent(event);
+        this.rememberLatestEvent(safeEvent);
         const subscribers = this.subscribersBySession.get(safeEvent.session_id);
 
         if (!subscribers) {
@@ -547,6 +565,89 @@ export class InMemoryObjectiveClinicianStreamHub {
         return delivered;
     }
 
+    rememberLatestEvent(event: ObjectiveClinicianStreamEvent): void {
+        const safeEvent = serializeObjectiveClinicianStreamEvent(event);
+        const latestForSession =
+            this.latestEventsBySession.get(safeEvent.session_id) ?? new Map();
+
+        latestForSession.delete(safeEvent.event_type);
+        latestForSession.set(safeEvent.event_type, safeEvent);
+
+        this.latestEventsBySession.set(safeEvent.session_id, latestForSession);
+    }
+
+    getReplaySnapshot(
+        sessionId: string,
+        allowedScopes: ReadonlySet<ObjectiveClinicianStreamEventType>,
+    ): ObjectiveStreamReplaySnapshot {
+        const normalizedSessionId = assertNonEmptyString(sessionId, "session_id");
+        const latestForSession =
+            this.latestEventsBySession.get(normalizedSessionId) ?? new Map();
+        const events = [...latestForSession.values()]
+            .filter((event) => allowedScopes.has(event.event_type))
+            .map((event) => serializeObjectiveClinicianStreamEvent(event));
+
+        return {
+            session_id: normalizedSessionId,
+            replay_mode: "latest",
+            event_count: events.length,
+            events,
+            visibility: visibility(),
+        };
+    }
+
+    replayLatest(
+        sessionId: string,
+        subscriber: ObjectiveClinicianStreamSubscriber,
+    ): number {
+        const snapshot = this.getReplaySnapshot(sessionId, subscriber.allowedScopes);
+
+        for (const event of snapshot.events) {
+            subscriber.send(event);
+        }
+
+        return snapshot.event_count;
+    }
+
+    async recheckSubscriptions(): Promise<number> {
+        let closedCount = 0;
+
+        for (const [sessionId, subscribers] of this.subscribersBySession.entries()) {
+            const subscribersToClose: ObjectiveClinicianStreamSubscriber[] = [];
+
+            for (const subscriber of subscribers) {
+                if (!subscriber.isAuthorized) {
+                    continue;
+                }
+
+                const stillAuthorized = await subscriber.isAuthorized();
+
+                if (!stillAuthorized) {
+                    subscribersToClose.push(subscriber);
+                }
+            }
+
+            for (const subscriber of subscribersToClose) {
+                await subscriber.onAuthorizationRevoked?.();
+                subscribers.delete(subscriber);
+                subscriber.close?.(
+                    createObjectiveStreamErrorEvent(
+                        sessionId,
+                        "objective_stream_assignment_revoked",
+                        "Objective stream access ended because clinician assignment is no longer active.",
+                    ),
+                );
+                closedCount += 1;
+            }
+
+            if (subscribers.size === 0) {
+                this.subscribersBySession.delete(sessionId);
+            }
+        }
+
+        return closedCount;
+    }
+
     subscriberCount(sessionId?: string): number {
         if (sessionId) {
             return this.subscribersBySession.get(sessionId)?.size ?? 0;
@@ -563,5 +664,6 @@ export class InMemoryObjectiveClinicianStreamHub {
 
     clear(): void {
         this.subscribersBySession.clear();
+        this.latestEventsBySession.clear();
     }
 }

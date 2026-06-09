@@ -2,11 +2,14 @@ import { createHash } from "crypto";
 import type { IncomingMessage } from "http";
 import type { Duplex } from "stream";
 import type { ObjectiveAuditLogger } from "./audit.js";
+import type { ObjectiveAssignmentLookup } from "./assignments.js";
 import { createObjectiveSafeErrorBody } from "./errors.js";
 import {
     createObjectiveHeartbeatStreamEvent,
     InMemoryObjectiveClinicianStreamHub,
     type ObjectiveClinicianStreamEvent,
+    type ObjectiveClinicianStreamSubscriber,
+    type ObjectiveStreamReplayMode,
 } from "./streamEvents.js";
 import {
     validateObjectiveStreamToken,
@@ -19,6 +22,8 @@ import {
 
 const WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
+export const DEFAULT_OBJECTIVE_STREAM_ASSIGNMENT_RECHECK_MS = 30_000;
+
 export type ObjectiveWebSocketSocket = Duplex & {
     write(chunk: string | Buffer): boolean;
     end(chunk?: string | Buffer): void;
@@ -28,13 +33,22 @@ export type ObjectiveWebSocketSocket = Duplex & {
 export type ObjectiveStreamRouteDependencies = {
     streamTokenSecret: string;
     streamHub: InMemoryObjectiveClinicianStreamHub;
+    assignmentLookup: ObjectiveAssignmentLookup;
     auditLogger?: ObjectiveAuditLogger;
+    assignmentRecheckIntervalMs?: number;
 };
 
-export function createDefaultObjectiveStreamRouteDependencies(): ObjectiveStreamRouteDependencies {
+export function createDefaultObjectiveStreamRouteDependencies(
+    assignmentLookup: ObjectiveAssignmentLookup = {
+        async findActiveAssignment() {
+            return null;
+        },
+    },
+): ObjectiveStreamRouteDependencies {
     return {
         streamTokenSecret: process.env.OBJECTIVE_STREAM_TOKEN_SECRET ?? "",
         streamHub: new InMemoryObjectiveClinicianStreamHub(),
+        assignmentLookup,
     };
 }
 
@@ -215,6 +229,58 @@ function roleHeaderIsExplicitlyDenied(request: IncomingMessage): boolean {
     return role === "patient" || role === "chatbot";
 }
 
+function readReplayMode(url: URL): ObjectiveStreamReplayMode | null {
+    const replay = url.searchParams.get("replay");
+
+    if (replay === null || replay.trim() === "" || replay === "none") {
+        return "none";
+    }
+
+    if (replay === "latest") {
+        return "latest";
+    }
+
+    return null;
+}
+
+async function hasActiveMatchingAssignment(
+    dependencies: ObjectiveStreamRouteDependencies,
+    payload: ObjectiveStreamTokenPayload,
+): Promise<boolean> {
+    const assignment = await dependencies.assignmentLookup.findActiveAssignment(
+        payload.clinician_id,
+        payload.patient_id,
+    );
+
+    return (
+        assignment !== null &&
+        assignment.status === "active" &&
+        assignment.assignmentId === payload.assignment_id
+    );
+}
+
+function startAssignmentRecheckLoop(
+    dependencies: ObjectiveStreamRouteDependencies,
+): () => void {
+    const intervalMs =
+        dependencies.assignmentRecheckIntervalMs ??
+        DEFAULT_OBJECTIVE_STREAM_ASSIGNMENT_RECHECK_MS;
+
+    if (!Number.isInteger(intervalMs) || intervalMs <= 0) {
+        return () => undefined;
+    }
+
+    const interval = setInterval(() => {
+        void dependencies.streamHub.recheckSubscriptions();
+    }, intervalMs);
+
+    interval.unref?.();
+
+    return () => {
+        clearInterval(interval);
+    };
+}
+
 async function auditStreamDenied(
     dependencies: ObjectiveStreamRouteDependencies,
     trace: ObjectiveTraceContext,
@@ -239,16 +305,30 @@ async function auditStreamDenied(
 function createSubscriber(
     socket: ObjectiveWebSocketSocket,
     payload: ObjectiveStreamTokenPayload,
-): {
-    allowedScopes: ReadonlySet<ObjectiveClinicianStreamEvent["event_type"]>;
-    send(event: ObjectiveClinicianStreamEvent): void;
-} {
+    dependencies: ObjectiveStreamRouteDependencies,
+    trace: ObjectiveTraceContext,
+): ObjectiveClinicianStreamSubscriber {
     const allowedScopes = new Set(payload.allowed_event_scopes);
 
     return {
         allowedScopes,
         send(event: ObjectiveClinicianStreamEvent) {
             sendWebSocketEvent(socket, event);
+        },
+        close(event: ObjectiveClinicianStreamEvent) {
+            sendWebSocketEvent(socket, event);
+            socket.end();
+        },
+        async isAuthorized() {
+            return hasActiveMatchingAssignment(dependencies, payload);
+        },
+        async onAuthorizationRevoked() {
+            await auditStreamDenied(
+                dependencies,
+                trace,
+                payload.session_id,
+                "assignment_revoked_after_connect",
+            );
         },
     };
 }
@@ -265,6 +345,19 @@ export async function handleObjectiveStreamUpgrade(
 
     if (!parsedPath) {
         return false;
+    }
+
+    const replayMode = readReplayMode(url);
+
+    if (replayMode === null) {
+        writeUpgradeError(
+            socket,
+            400,
+            trace,
+            "objective_stream_invalid_replay_mode",
+            "Objective stream replay mode must be none or latest.",
+        );
+        return true;
     }
 
     if (roleHeaderIsExplicitlyDenied(request)) {
@@ -364,22 +457,59 @@ export async function handleObjectiveStreamUpgrade(
         return true;
     }
 
+    const assignmentStillActive = await hasActiveMatchingAssignment(
+        dependencies,
+        validation.payload,
+    );
+
+    if (!assignmentStillActive) {
+        await auditStreamDenied(
+            dependencies,
+            trace,
+            parsedPath.sessionId,
+            "inactive_or_revoked_assignment",
+        );
+        writeUpgradeError(
+            socket,
+            403,
+            trace,
+            "objective_stream_assignment_inactive",
+            "Objective stream requires an active clinician assignment.",
+        );
+        return true;
+    }
+
     writeWebSocketHandshake(request, socket);
 
-    const subscriber = createSubscriber(socket, validation.payload);
+    const subscriber = createSubscriber(
+        socket,
+        validation.payload,
+        dependencies,
+        trace,
+    );
     const unsubscribe = dependencies.streamHub.subscribe(
         parsedPath.sessionId,
         subscriber,
     );
+    const stopAssignmentRecheck = startAssignmentRecheckLoop(dependencies);
 
-    socket.on("close", unsubscribe);
-    socket.on("end", unsubscribe);
-    socket.on("error", unsubscribe);
+    const cleanup = () => {
+        unsubscribe();
+        stopAssignmentRecheck();
+    };
+
+    socket.on("close", cleanup);
+    socket.on("end", cleanup);
+    socket.on("error", cleanup);
 
     sendWebSocketEvent(
         socket,
         createObjectiveHeartbeatStreamEvent(parsedPath.sessionId),
     );
+
+    if (replayMode === "latest") {
+        dependencies.streamHub.replayLatest(parsedPath.sessionId, subscriber);
+    }
 
     return true;
 }

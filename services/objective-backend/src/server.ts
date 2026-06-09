@@ -98,7 +98,7 @@ export function createObjectiveHttpServer(
     rawTraceabilityDependencies: ObjectiveRawTraceabilityRouteDependencies =
         rawIngestionDependencies,
     streamDependencies: ObjectiveStreamRouteDependencies =
-        createDefaultObjectiveStreamRouteDependencies(),
+        createDefaultObjectiveStreamRouteDependencies(sessionDependencies.assignments),
 ): Server {
     const server = http.createServer((request, response) => {
         void (async () => {
