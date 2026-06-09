@@ -140,7 +140,11 @@ def _primary_feature_available(request: dict[str, Any], modality: str) -> bool:
     features = _as_object(request.get("features"))
     modality_features = _as_object(features.get(modality))
 
-    if _get_nested_bool(modality_features, "suppressed"):
+    if _get_nested_bool(modality_features, "suppressed") or _get_nested_bool(
+        modality_features,
+        "suppression",
+        "suppressed",
+    ):
         return False
 
     modality_availability = _as_object(request.get("modality_availability"))
