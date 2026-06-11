@@ -10,6 +10,7 @@ import {
   type ObjectiveDashboardSessionStatus,
   type ObjectiveDashboardSourceType,
 } from "../_lib/liveMonitoringCopy";
+import { ObjectiveRawSignalCharts } from "./ObjectiveRawSignalCharts";
 
 export type ObjectiveLiveMonitoringShellProps = {
   sessionId: string;
@@ -128,6 +129,8 @@ export function ObjectiveLiveMonitoringShell({
           </p>
         </section>
       ) : null}
+
+      <ObjectiveRawSignalCharts />
     </section>
   );
 }
