@@ -10,6 +10,7 @@ import {
   type ObjectiveDashboardSessionStatus,
   type ObjectiveDashboardSourceType,
 } from "../_lib/liveMonitoringCopy";
+import { ObjectiveQualityFeatureCards } from "./ObjectiveQualityFeatureCards";
 import { ObjectiveRawSignalCharts } from "./ObjectiveRawSignalCharts";
 
 export type ObjectiveLiveMonitoringShellProps = {
@@ -131,6 +132,8 @@ export function ObjectiveLiveMonitoringShell({
       ) : null}
 
       <ObjectiveRawSignalCharts />
+
+      <ObjectiveQualityFeatureCards />
     </section>
   );
 }
