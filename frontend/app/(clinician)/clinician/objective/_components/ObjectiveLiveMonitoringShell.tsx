@@ -13,6 +13,7 @@ import {
 import { ObjectiveMlInterpretationCards } from "./ObjectiveMlInterpretationCards";
 import { ObjectiveQualityFeatureCards } from "./ObjectiveQualityFeatureCards";
 import { ObjectiveRawSignalCharts } from "./ObjectiveRawSignalCharts";
+import { ObjectiveSessionTimelineSummaryNotes } from "./ObjectiveSessionTimelineSummaryNotes";
 
 export type ObjectiveLiveMonitoringShellProps = {
   sessionId: string;
@@ -137,6 +138,8 @@ export function ObjectiveLiveMonitoringShell({
       <ObjectiveQualityFeatureCards />
 
       <ObjectiveMlInterpretationCards />
+
+      <ObjectiveSessionTimelineSummaryNotes />
     </section>
   );
 }
