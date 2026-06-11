@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { ObjectiveDashboardShell } from "../../_components/ObjectiveDashboardShell";
-import { ObjectiveRoutePlaceholder } from "../../_components/ObjectiveRoutePlaceholder";
+import { ObjectiveLiveMonitoringShell } from "../../_components/ObjectiveLiveMonitoringShell";
 import { getObjectiveDashboardAccessFromHeaders } from "../../_lib/dashboardAccess";
 
 type PageProps = {
@@ -23,11 +23,14 @@ export default async function ClinicianObjectiveLiveSessionPage({
     <ObjectiveDashboardShell
       access={access}
       title="Live objective session"
-      description="Clinician-only placeholder for future live monitoring over the objective stream."
+      description="Clinician-only live monitoring shell for source-bound physiological evidence."
     >
-      <ObjectiveRoutePlaceholder
-        heading="Live monitoring placeholder"
-        detail={`Future live monitoring shell for session reference: ${sessionId}.`}
+      <ObjectiveLiveMonitoringShell
+        sessionId={sessionId}
+        sourceType="simulator"
+        connectionStatus="not_connected"
+        liveStatus="no_data"
+        sessionStatus="unknown"
       />
     </ObjectiveDashboardShell>
   );
