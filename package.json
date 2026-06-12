@@ -22,7 +22,18 @@
         "typecheck": "yarn run turbo:command typecheck",
         "test": "yarn run turbo:command test",
         "test:phase1": "yarn workspace backend test:phase1",
-        "test:phase2": "yarn workspace backend test:phase2"
+        "test:phase2": "yarn workspace backend test:phase2",
+        "test:objective:simulator": "node scripts/objective/phase3-release-gate.mjs simulator",
+        "test:objective:ingest": "node scripts/objective/phase3-release-gate.mjs ingest",
+        "test:objective:features": "node scripts/objective/phase3-release-gate.mjs features",
+        "test:objective:ml": "node scripts/objective/phase3-release-gate.mjs ml",
+        "test:objective:interpretation": "node scripts/objective/phase3-release-gate.mjs interpretation",
+        "test:objective:rbac": "node scripts/objective/phase3-release-gate.mjs rbac",
+        "test:objective:dashboard": "node scripts/objective/phase3-release-gate.mjs dashboard",
+        "test:objective:safety": "node scripts/objective/phase3-release-gate.mjs safety",
+        "test:no-leaks": "node scripts/objective/phase3-release-gate.mjs no-leaks",
+        "test:objective": "node scripts/objective/phase3-release-gate.mjs objective",
+        "test:phase3": "node scripts/objective/phase3-release-gate.mjs phase3"
     },
     "devDependencies": {
         "turbo": "latest"
