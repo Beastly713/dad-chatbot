@@ -18,6 +18,8 @@ export * from "./sessionHistory.js";
 export * from "./sessionHistoryRoutes.js";
 export * from "./sessionReplay.js";
 export * from "./sessionReplayRoutes.js";
+export * from "./sessionSummary.js";
+export * from "./sessionSummaryRoutes.js";
 export * from "./rawIngestion.js";
 export * from "./rawIngestionRoutes.js";
 export * from "./rawTraceabilityRoutes.js";
