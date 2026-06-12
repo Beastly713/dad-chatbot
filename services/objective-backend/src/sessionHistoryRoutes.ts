@@ -12,6 +12,11 @@ import {
     serializeObjectiveSessionHistoryDetail,
     type ObjectiveSessionHistoryRepository,
 } from "./sessionHistory.js";
+import {
+    createEmptyObjectiveSessionReplayRepository,
+    handleObjectiveSessionReplayRoute,
+    type ObjectiveSessionReplayRouteDependencies,
+} from "./sessionReplayRoutes.js";
 import type { ObjectiveSessionRepository } from "./sessionLifecycle.js";
 import { createObjectiveTraceContext } from "./trace.js";
 
@@ -20,6 +25,7 @@ export type ObjectiveSessionHistoryRouteDependencies = {
     assignments: ObjectiveAssignmentLookup;
     auditLogger?: ObjectiveAuditLogger;
     now?: () => Date;
+    replay?: ObjectiveSessionReplayRouteDependencies;
 };
 
 export function createDefaultObjectiveSessionHistoryRouteDependencies(
@@ -27,10 +33,17 @@ export function createDefaultObjectiveSessionHistoryRouteDependencies(
     assignments: ObjectiveAssignmentLookup,
     auditLogger?: ObjectiveAuditLogger,
 ): ObjectiveSessionHistoryRouteDependencies {
+    const history = createObjectiveSessionHistoryRepositoryFromSessions(sessions);
+
     return {
-        history: createObjectiveSessionHistoryRepositoryFromSessions(sessions),
+        history,
         assignments,
         auditLogger,
+        replay: {
+            replay: createEmptyObjectiveSessionReplayRepository(history),
+            assignments,
+            auditLogger,
+        },
     };
 }
 
@@ -96,6 +109,18 @@ export async function handleObjectiveSessionHistoryRoute(
 
     response.setHeader("x-request-id", trace.requestId);
     response.setHeader("x-trace-id", trace.traceId);
+
+    if (dependencies.replay) {
+        const handledReplayRoute = await handleObjectiveSessionReplayRoute(
+            request,
+            response,
+            dependencies.replay,
+        );
+
+        if (handledReplayRoute) {
+            return true;
+        }
+    }
 
     const patientSessionsPath = parsePatientSessionsPath(url.pathname);
     const sessionDetailPath = parseSessionDetailPath(url.pathname);
