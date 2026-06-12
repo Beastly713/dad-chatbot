@@ -22,6 +22,7 @@ export * from "./sessionSummary.js";
 export * from "./sessionSummaryRoutes.js";
 export * from "./rawIngestion.js";
 export * from "./rawIngestionRoutes.js";
+export * from "./prototypeHardwareBridge.js";
 export * from "./rawTraceabilityRoutes.js";
 export * from "./rawTiming.js";
 export * from "./rawStorage.js";
