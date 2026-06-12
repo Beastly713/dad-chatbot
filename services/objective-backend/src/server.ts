@@ -21,6 +21,11 @@ import {
     type ObjectiveSessionRouteDependencies,
 } from "./sessionRoutes.js";
 import {
+    createDefaultObjectiveSessionHistoryRouteDependencies,
+    handleObjectiveSessionHistoryRoute,
+    type ObjectiveSessionHistoryRouteDependencies,
+} from "./sessionHistoryRoutes.js";
+import {
     createDefaultObjectiveStreamRouteDependencies,
     handleObjectiveStreamUpgrade,
     type ObjectiveStreamRouteDependencies,
@@ -99,6 +104,12 @@ export function createObjectiveHttpServer(
         rawIngestionDependencies,
     streamDependencies: ObjectiveStreamRouteDependencies =
         createDefaultObjectiveStreamRouteDependencies(sessionDependencies.assignments),
+    historyDependencies: ObjectiveSessionHistoryRouteDependencies =
+        createDefaultObjectiveSessionHistoryRouteDependencies(
+            sessionDependencies.sessions,
+            sessionDependencies.assignments,
+            sessionDependencies.auditLogger,
+        ),
 ): Server {
     const server = http.createServer((request, response) => {
         void (async () => {
@@ -120,6 +131,16 @@ export function createObjectiveHttpServer(
                 );
 
             if (handledRawTraceabilityRoute) {
+                return;
+            }
+
+            const handledHistoryRoute = await handleObjectiveSessionHistoryRoute(
+                request,
+                response,
+                historyDependencies,
+            );
+
+            if (handledHistoryRoute) {
                 return;
             }
 

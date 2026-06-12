@@ -14,6 +14,8 @@ export * from "./failClosed.js";
 export * from "./audit.js";
 export * from "./sessionLifecycle.js";
 export * from "./sessionRoutes.js";
+export * from "./sessionHistory.js";
+export * from "./sessionHistoryRoutes.js";
 export * from "./rawIngestion.js";
 export * from "./rawIngestionRoutes.js";
 export * from "./rawTraceabilityRoutes.js";

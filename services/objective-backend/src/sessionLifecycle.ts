@@ -64,6 +64,9 @@ export type ObjectiveSessionRepository = {
             Pick<ObjectiveSessionRecord, "started_at" | "paused_at" | "stopped_at">
         >,
     ): Promise<ObjectiveSessionRecord | null>;
+    listSessionsForPatient?(
+        patientId: string,
+    ): Promise<ObjectiveSessionRecord[]>;
 };
 
 export type ObjectiveSessionAccess = {
@@ -138,6 +141,19 @@ export class InMemoryObjectiveSessionRepository
         this.sessions.set(sessionId, updated);
 
         return updated;
+    }
+
+    async listSessionsForPatient(
+        patientId: string,
+    ): Promise<ObjectiveSessionRecord[]> {
+        return [...this.sessions.values()]
+            .filter((session) => session.patient_id === patientId)
+            .sort(
+                (left, right) =>
+                    right.created_at.localeCompare(left.created_at) ||
+                    right.session_id.localeCompare(left.session_id),
+            )
+            .map((session) => ({ ...session }));
     }
 
     clear(): void {
