@@ -85,6 +85,7 @@ describe("Phase 4 objective console acceptance regression", () => {
     const { container, unmount } = renderConsole();
 
     for (const heading of [
+      "Console overview",
       "Scenario setup",
       "Session status",
       "Sensor/device stack",
@@ -185,6 +186,8 @@ describe("Phase 4 objective console acceptance regression", () => {
     const { container, unmount } = renderConsole();
 
     for (const label of [
+      "P0 mentor demo",
+      "Not connected to chatbot responses",
       "ECG preview",
       "GSR trend",
       "PPG preview",

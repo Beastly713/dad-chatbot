@@ -113,7 +113,7 @@ describe("ObjectivePhase4SensorStackPanel", () => {
       "not core temperature",
       "device-health context",
       "not a physiological temperature signal",
-      "not intoxication",
+      "not impairment classification",
       "not proof of stress",
       "not a cardiac diagnosis",
     ]) {

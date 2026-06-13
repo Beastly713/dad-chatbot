@@ -35,7 +35,7 @@ const PHASE4_SAFETY_BOUNDARIES: readonly Phase4SafetyBoundary[] = [
       "Objective outputs are limited to source-bound technical review context and are not diagnostic conclusions.",
     details: [
       "The console does not diagnose, assign severity, or produce automated warning outputs.",
-      "The console does not predict relapse, assess withdrawal, determine intoxication, infer sobriety, or label patient stability.",
+      "The console does not predict relapse, assess withdrawal, classify acute impairment, infer abstinence status, or label patient stability.",
       "The console does not provide treatment guidance, detox guidance, medication guidance, or emergency instructions.",
     ],
   },

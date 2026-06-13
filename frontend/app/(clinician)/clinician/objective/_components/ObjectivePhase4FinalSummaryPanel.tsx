@@ -88,9 +88,9 @@ export function ObjectivePhase4FinalSummaryPanel() {
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           This closing summary is limited to source-bound technical review
           context. It does not provide diagnosis, emergency detection, relapse
-          prediction, withdrawal assessment, intoxication detection, sobriety
-          status, detox guidance, medication guidance, treatment guidance, or
-          patient-facing output.
+          prediction, withdrawal assessment, acute impairment classification,
+          abstinence status, detox guidance, medication guidance, treatment
+          guidance, or patient-facing output.
         </p>
       </div>
     </section>

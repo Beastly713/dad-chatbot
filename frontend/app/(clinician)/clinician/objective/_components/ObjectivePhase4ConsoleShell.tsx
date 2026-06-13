@@ -1,5 +1,6 @@
 import { ObjectivePhase4FeatureWindowPanel } from "./ObjectivePhase4FeatureWindowPanel";
 import { ObjectivePhase4FinalSummaryPanel } from "./ObjectivePhase4FinalSummaryPanel";
+import { ObjectivePhase4ConsoleOverviewRail } from "./ObjectivePhase4ConsoleOverviewRail";
 import { ObjectivePhase4InterpretationConfidencePanel } from "./ObjectivePhase4InterpretationConfidencePanel";
 import { ObjectivePhase4PipelinePanel } from "./ObjectivePhase4PipelinePanel";
 import { ObjectivePhase4QualityReadinessPanel } from "./ObjectivePhase4QualityReadinessPanel";
@@ -90,6 +91,8 @@ export function ObjectivePhase4ConsoleShell() {
           </div>
         </div>
       </section>
+
+      <ObjectivePhase4ConsoleOverviewRail />
 
       <section className="grid gap-4 xl:grid-cols-4">
         <section className="rounded-lg border bg-muted/30 p-5 xl:col-span-1">

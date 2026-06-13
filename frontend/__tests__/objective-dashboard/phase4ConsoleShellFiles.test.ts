@@ -37,6 +37,13 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4ConsoleShell.tsx",
   );
+  const consoleOverviewRail = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4ConsoleOverviewRail.tsx",
+  );
   const scenarioSelector = appPath(
     "(clinician)",
     "clinician",
@@ -146,6 +153,7 @@ describe("Phase 4 objective console shell", () => {
   it("adds the Phase 4 console shell to the existing clinician objective route", () => {
     expect(fs.existsSync(page)).toBe(true);
     expect(fs.existsSync(consoleShell)).toBe(true);
+    expect(fs.existsSync(consoleOverviewRail)).toBe(true);
     expect(fs.existsSync(sessionStatusPanel)).toBe(true);
     expect(fs.existsSync(sensorStackPanel)).toBe(true);
     expect(fs.existsSync(signalPreviewPanel)).toBe(true);
@@ -166,10 +174,13 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(timelinePanel)}\n${read(finalSummaryPanel)}\n${read(safetyBoundaryPanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}\n${read(sessionTimelineLib)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(consoleOverviewRail)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(timelinePanel)}\n${read(finalSummaryPanel)}\n${read(safetyBoundaryPanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}\n${read(sessionTimelineLib)}`;
 
     for (const required of [
       "Objective Monitoring Console",
+      "Console overview",
+      "Phase 4 P0 console overview",
+      "P0 mentor demo",
       "Clinician-only",
       "Simulator demo",
       "Non-diagnostic",

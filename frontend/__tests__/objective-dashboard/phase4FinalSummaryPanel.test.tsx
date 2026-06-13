@@ -155,7 +155,7 @@ describe("ObjectivePhase4FinalSummaryPanel", () => {
       "do not compute live session outcomes, save notes, call backend services, create clinical conclusions, or affect chatbot responses",
       "source-bound technical review context",
       "does not provide diagnosis",
-      "does not provide diagnosis, emergency detection, relapse prediction, withdrawal assessment, intoxication detection, sobriety status, detox guidance, medication guidance, treatment guidance, or patient-facing output",
+      "does not provide diagnosis, emergency detection, relapse prediction, withdrawal assessment, acute impairment classification, abstinence status, detox guidance, medication guidance, treatment guidance, or patient-facing output",
     ]) {
       expect(renderedText).toContain(required);
     }

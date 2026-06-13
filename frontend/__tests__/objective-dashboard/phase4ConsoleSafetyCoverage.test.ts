@@ -8,6 +8,7 @@ const PHASE4_SOURCE_FILES = [
   "app/(clinician)/clinician/objective/page.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectiveDashboardShell.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4ConsoleShell.tsx",
+  "app/(clinician)/clinician/objective/_components/ObjectivePhase4ConsoleOverviewRail.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4ScenarioSelector.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4SessionStatusPanel.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4SensorStackPanel.tsx",
@@ -138,6 +139,7 @@ describe("Phase 4 console safety coverage", () => {
     const shellContent = readFrontend(shellFile);
 
     for (const panel of [
+      "ObjectivePhase4ConsoleOverviewRail",
       "ObjectivePhase4ScenarioSelector",
       "ObjectivePhase4SessionStatusPanel",
       "ObjectivePhase4SensorStackPanel",
@@ -322,6 +324,7 @@ describe("Phase 4 console safety coverage", () => {
         "ObjectivePhase4TimelinePanel",
         "ObjectivePhase4FinalSummaryPanel",
         "ObjectivePhase4SafetyBoundaryPanel",
+        "ObjectivePhase4ConsoleOverviewRail",
         "phase4DemoScenarios",
         "PHASE4_DEMO_SCENARIOS",
       ]) {
@@ -338,6 +341,8 @@ describe("Phase 4 console safety coverage", () => {
       "non-diagnostic",
       "source-bound",
       "simulator demo",
+      "console overview",
+      "p0 mentor demo",
       "no chatbot update",
       "no backend connection",
       "no live hardware",

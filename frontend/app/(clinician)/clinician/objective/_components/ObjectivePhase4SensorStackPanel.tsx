@@ -31,7 +31,7 @@ const PHASE4_SENSOR_STACK_ITEMS: readonly Phase4SensorStackItem[] = [
     label: "Motion context",
     role: "Activity-like context for artifact review and signal quality interpretation.",
     limitation:
-      "Presented as technical motion context only, not intoxication, behavior, or intent.",
+      "Presented as technical motion context only, not impairment classification, behavior, or intent.",
     status: "Artifact context",
   },
   {
