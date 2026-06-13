@@ -1,14 +1,10 @@
+import { ObjectivePhase4PipelinePanel } from "./ObjectivePhase4PipelinePanel";
 import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelector";
 import { ObjectivePhase4SignalPreviewPanel } from "./ObjectivePhase4SignalPreviewPanel";
 import { ObjectivePhase4SensorStackPanel } from "./ObjectivePhase4SensorStackPanel";
 import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatusPanel";
 
 const PHASE4_PLACEHOLDER_REGIONS = [
-  {
-    title: "Processing pipeline",
-    detail:
-      "Placeholder for source-to-review processing stages. Pipeline progression is added in a later commit.",
-  },
   {
     title: "Quality/readiness",
     detail:
@@ -178,6 +174,10 @@ export function ObjectivePhase4ConsoleShell() {
 
           <div className="md:col-span-2">
             <ObjectivePhase4SignalPreviewPanel />
+          </div>
+
+          <div className="md:col-span-2">
+            <ObjectivePhase4PipelinePanel />
           </div>
 
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (
