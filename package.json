@@ -32,6 +32,7 @@
         "test:objective:dashboard": "node scripts/objective/phase3-release-gate.mjs dashboard",
         "test:objective:safety": "node scripts/objective/phase3-release-gate.mjs safety",
         "test:no-leaks": "node scripts/objective/phase3-release-gate.mjs no-leaks",
+        "test:phase4:console": "node scripts/objective/phase4-console-validation-gate.mjs",
         "test:objective": "node scripts/objective/phase3-release-gate.mjs objective",
         "test:phase3": "node scripts/objective/phase3-release-gate.mjs phase3",
         "test:phase3:final": "node scripts/objective/phase3-final-release-gate.mjs"
