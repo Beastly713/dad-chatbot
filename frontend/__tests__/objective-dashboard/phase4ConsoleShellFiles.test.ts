@@ -72,6 +72,13 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4PipelinePanel.tsx",
   );
+  const featureWindowPanel = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4FeatureWindowPanel.tsx",
+  );
   const qualityFeatureLib = appPath(
     "(clinician)",
     "clinician",
@@ -95,6 +102,7 @@ describe("Phase 4 objective console shell", () => {
     expect(fs.existsSync(signalPreviewPanel)).toBe(true);
     expect(fs.existsSync(pipelinePanel)).toBe(true);
     expect(fs.existsSync(qualityReadinessPanel)).toBe(true);
+    expect(fs.existsSync(featureWindowPanel)).toBe(true);
 
     const pageContent = read(page);
 
@@ -105,7 +113,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(qualityFeatureLib)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(qualityFeatureLib)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -151,6 +159,13 @@ describe("Phase 4 objective console shell", () => {
       "Missingness",
       "Technical limitations",
       "Supporting context",
+      "Feature-window summary",
+      "Source-bound feature context",
+      "Heart-activity trend",
+      "Skin-conductance trend",
+      "Pulse-waveform context",
+      "Motion confound context",
+      "Feature context",
       "Interpretation context",
       "Timeline",
       "Final summary",

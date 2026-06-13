@@ -1,3 +1,4 @@
+import { ObjectivePhase4FeatureWindowPanel } from "./ObjectivePhase4FeatureWindowPanel";
 import { ObjectivePhase4PipelinePanel } from "./ObjectivePhase4PipelinePanel";
 import { ObjectivePhase4QualityReadinessPanel } from "./ObjectivePhase4QualityReadinessPanel";
 import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelector";
@@ -178,6 +179,10 @@ export function ObjectivePhase4ConsoleShell() {
 
           <div className="md:col-span-2">
             <ObjectivePhase4QualityReadinessPanel />
+          </div>
+
+          <div className="md:col-span-2">
+            <ObjectivePhase4FeatureWindowPanel />
           </div>
 
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (
