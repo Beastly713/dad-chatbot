@@ -1,4 +1,5 @@
 import { ObjectivePhase4FeatureWindowPanel } from "./ObjectivePhase4FeatureWindowPanel";
+import { ObjectivePhase4FinalSummaryPanel } from "./ObjectivePhase4FinalSummaryPanel";
 import { ObjectivePhase4InterpretationConfidencePanel } from "./ObjectivePhase4InterpretationConfidencePanel";
 import { ObjectivePhase4PipelinePanel } from "./ObjectivePhase4PipelinePanel";
 import { ObjectivePhase4QualityReadinessPanel } from "./ObjectivePhase4QualityReadinessPanel";
@@ -8,37 +9,11 @@ import { ObjectivePhase4SensorStackPanel } from "./ObjectivePhase4SensorStackPan
 import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatusPanel";
 import { ObjectivePhase4TimelinePanel } from "./ObjectivePhase4TimelinePanel";
 
-const PHASE4_PLACEHOLDER_REGIONS = [
-  {
-    title: "Final summary",
-    detail:
-      "Placeholder for safe session summary and closing review notes. Final summary behavior is added in a later commit.",
-  },
-];
-
 function ObjectiveConsoleBadge({ label }: { label: string }) {
   return (
     <span className="rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
       {label}
     </span>
-  );
-}
-
-function ObjectiveConsoleRegion({
-  title,
-  detail,
-}: {
-  title: string;
-  detail: string;
-}) {
-  return (
-    <section className="rounded-lg border bg-background/95 p-5 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Phase 4 module placeholder
-      </p>
-      <h3 className="mt-2 text-lg font-semibold tracking-tight">{title}</h3>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">{detail}</p>
-    </section>
   );
 }
 
@@ -185,13 +160,9 @@ export function ObjectivePhase4ConsoleShell() {
             <ObjectivePhase4TimelinePanel />
           </div>
 
-          {PHASE4_PLACEHOLDER_REGIONS.map((region) => (
-            <ObjectiveConsoleRegion
-              key={region.title}
-              title={region.title}
-              detail={region.detail}
-            />
-          ))}
+          <div className="md:col-span-2">
+            <ObjectivePhase4FinalSummaryPanel />
+          </div>
         </section>
       </section>
     </section>

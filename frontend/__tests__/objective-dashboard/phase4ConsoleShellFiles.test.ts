@@ -79,6 +79,13 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4FeatureWindowPanel.tsx",
   );
+  const finalSummaryPanel = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4FinalSummaryPanel.tsx",
+  );
   const interpretationConfidencePanel = appPath(
     "(clinician)",
     "clinician",
@@ -140,6 +147,7 @@ describe("Phase 4 objective console shell", () => {
     expect(fs.existsSync(featureWindowPanel)).toBe(true);
     expect(fs.existsSync(interpretationConfidencePanel)).toBe(true);
     expect(fs.existsSync(timelinePanel)).toBe(true);
+    expect(fs.existsSync(finalSummaryPanel)).toBe(true);
 
     const pageContent = read(page);
 
@@ -150,7 +158,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(timelinePanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}\n${read(sessionTimelineLib)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(timelinePanel)}\n${read(finalSummaryPanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}\n${read(sessionTimelineLib)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -223,7 +231,18 @@ describe("Phase 4 objective console shell", () => {
       "Elevated arousal evidence period",
       "Motion-confounded window",
       "Cooldown period",
+      "Safe session summary",
       "Final summary",
+      "Static demo summary",
+      "Interpretable fraction",
+      "Suppressed windows",
+      "Signal quality distribution",
+      "Modality availability",
+      "Elevated arousal evidence periods",
+      "Cooldown periods",
+      "Motion-confounded fraction",
+      "Automated summary scope",
+      "No note persistence",
       "Safety boundaries",
       "clinician_visible=true",
       "patient_visible=false",
@@ -231,6 +250,14 @@ describe("Phase 4 objective console shell", () => {
     ]) {
       expect(combined).toContain(required);
     }
+  });
+
+  it("does not leave Phase 4 placeholder regions in the console shell", () => {
+    const shellContent = read(consoleShell);
+
+    expectNoText(shellContent, "PHASE4_PLACEHOLDER_REGIONS", consoleShell);
+    expectNoText(shellContent, "ObjectiveConsoleRegion", consoleShell);
+    expectNoText(shellContent, "Placeholder for", consoleShell);
   });
 
   it("does not introduce future Phase 4 module logic yet", () => {
