@@ -17,6 +17,7 @@ Run these gates before considering Phase 3 complete:
 - [ ] corepack yarn test:phase1
 - [ ] corepack yarn test:phase2
 - [ ] corepack yarn test:phase3
+- [ ] corepack yarn test:phase3:final
 - [ ] corepack yarn lint
 - [ ] corepack yarn typecheck
 - [ ] corepack yarn build
@@ -50,6 +51,14 @@ Run these gates before considering Phase 3 complete:
 - Prototype hardware ingestion is disabled by default.
 - ML behavior is bounded engineering infrastructure, not clinical validation.
 - Calibration is not clinical calibration.
+
+## Commit 75 final hardening
+
+The final integrated hardening command is:
+
+- corepack yarn test:phase3:final
+
+This command runs Phase 1, Phase 2, Phase 3, no-leak, lint, typecheck, build, and git diff checks sequentially.
 
 ## Release position
 
