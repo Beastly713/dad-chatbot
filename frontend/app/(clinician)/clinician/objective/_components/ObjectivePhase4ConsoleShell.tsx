@@ -1,15 +1,11 @@
 import { ObjectivePhase4PipelinePanel } from "./ObjectivePhase4PipelinePanel";
+import { ObjectivePhase4QualityReadinessPanel } from "./ObjectivePhase4QualityReadinessPanel";
 import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelector";
 import { ObjectivePhase4SignalPreviewPanel } from "./ObjectivePhase4SignalPreviewPanel";
 import { ObjectivePhase4SensorStackPanel } from "./ObjectivePhase4SensorStackPanel";
 import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatusPanel";
 
 const PHASE4_PLACEHOLDER_REGIONS = [
-  {
-    title: "Quality/readiness",
-    detail:
-      "Placeholder for technical quality and readiness context. Quality logic is added in a later commit.",
-  },
   {
     title: "Interpretation context",
     detail:
@@ -180,6 +176,10 @@ export function ObjectivePhase4ConsoleShell() {
             <ObjectivePhase4PipelinePanel />
           </div>
 
+          <div className="md:col-span-2">
+            <ObjectivePhase4QualityReadinessPanel />
+          </div>
+
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (
             <ObjectiveConsoleRegion
               key={region.title}
@@ -188,16 +188,6 @@ export function ObjectivePhase4ConsoleShell() {
             />
           ))}
         </section>
-      </section>
-
-      <section className="rounded-lg border bg-background p-5 shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Quality/readiness context
-        </p>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Placeholder for the next Phase 4 module. No live backend connection is
-          used in this shell.
-        </p>
       </section>
     </section>
   );

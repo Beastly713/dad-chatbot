@@ -72,6 +72,20 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4PipelinePanel.tsx",
   );
+  const qualityFeatureLib = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_lib",
+    "qualityFeatureCards.ts",
+  );
+  const qualityReadinessPanel = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4QualityReadinessPanel.tsx",
+  );
 
   it("adds the Phase 4 console shell to the existing clinician objective route", () => {
     expect(fs.existsSync(page)).toBe(true);
@@ -80,6 +94,7 @@ describe("Phase 4 objective console shell", () => {
     expect(fs.existsSync(sensorStackPanel)).toBe(true);
     expect(fs.existsSync(signalPreviewPanel)).toBe(true);
     expect(fs.existsSync(pipelinePanel)).toBe(true);
+    expect(fs.existsSync(qualityReadinessPanel)).toBe(true);
 
     const pageContent = read(page);
 
@@ -90,7 +105,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(qualityFeatureLib)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -100,7 +115,6 @@ describe("Phase 4 objective console shell", () => {
       "Source-bound physiological evidence",
       "Clinician-reviewable evidence",
       "Uncertainty-bearing",
-      "Quality/readiness context",
       "Not connected to chatbot responses",
       "Scenario setup",
       "Session status",
@@ -125,7 +139,18 @@ describe("Phase 4 objective console shell", () => {
       "Safe interpretation boundary",
       "Clinician review surface",
       "Session summary",
+      "Technical quality/readiness",
       "Quality/readiness",
+      "ECG quality",
+      "GSR quality",
+      "PPG quality",
+      "Motion/activity context",
+      "Temperature/contact context",
+      "Timing quality",
+      "Baseline state",
+      "Missingness",
+      "Technical limitations",
+      "Supporting context",
       "Interpretation context",
       "Timeline",
       "Final summary",
