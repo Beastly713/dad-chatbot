@@ -98,8 +98,8 @@ describe("Stage 11 clinician objective dashboard accessibility and copy regressi
 
     for (const required of [
       "Live session shell",
-      "Chart-ready raw signal previews",
-      "Physiological and device-context panels",
+      "Chart-ready signal previews",
+      "Physiological and device-context preview cards",
       "Quality and feature summary cards",
       "Evidence, confidence, and uncertainty cards",
       "Interpretation timeline",

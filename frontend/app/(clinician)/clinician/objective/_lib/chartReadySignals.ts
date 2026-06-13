@@ -138,18 +138,18 @@ export function createObjectiveDemoChartSeries(): ObjectiveChartSeries[] {
     },
     {
       kind: "tmp117_temperature_trend",
-      title: "TMP117 local temperature trend",
-      subtitle: "Chart-ready local skin/contact temperature trend.",
-      yLabel: "Local temperature deg C",
+      title: "Local temperature/contact trend",
+      subtitle: "Chart-ready local skin/contact temperature context.",
+      yLabel: "Local contact temperature context",
       sourceNote:
-        "Shown as local temperature/contact context only, not core-temperature or medical status.",
+        "Shown as local temperature/contact context only, not core temperature, fever, or medical status.",
       points: downsampleObjectiveChartPoints(makeTrend(96, 32.4, 0.004, 0.05)),
     },
     {
       kind: "mpu_device_temperature",
-      title: "MPU device temperature",
+      title: "Device temperature context",
       subtitle: "Chart-ready device-health temperature context.",
-      yLabel: "Device temperature deg C",
+      yLabel: "Device temperature context",
       sourceNote:
         "Shown as device-health context only. This is not a physiological temperature signal.",
       points: downsampleObjectiveChartPoints(makeTrend(96, 30.2, 0.003, 0.04)),

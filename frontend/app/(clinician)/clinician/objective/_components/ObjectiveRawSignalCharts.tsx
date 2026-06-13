@@ -16,13 +16,13 @@ export function ObjectiveRawSignalCharts({
     >
       <div>
         <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Chart-ready raw signal previews
+          Chart-ready signal previews
         </p>
         <h2
           id="objective-raw-signal-charts-title"
           className="mt-2 text-2xl font-semibold tracking-tight"
         >
-          Physiological and device-context panels
+          Physiological and device-context preview cards
         </h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
           These panels show downsampled chart-ready previews for clinician

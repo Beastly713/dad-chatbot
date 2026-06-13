@@ -115,7 +115,7 @@ describe("objective chart-ready signal helpers", () => {
     expect(combined).toContain("not a physiological temperature signal");
   });
 
-  it("labels TMP117 as local temperature context, not core temperature", () => {
+  it("labels TMP117 as local contact context, not medical status", () => {
     const tmp117 = createObjectiveDemoChartSeries().find(
       (item) => item.kind === "tmp117_temperature_trend",
     );
@@ -125,6 +125,7 @@ describe("objective chart-ready signal helpers", () => {
       `${tmp117?.title} ${tmp117?.subtitle} ${tmp117?.sourceNote}`.toLowerCase();
 
     expect(combined).toContain("local");
-    expect(combined).not.toContain("core temperature");
+    expect(combined).toContain("not core temperature");
+    expect(combined).toContain("not core temperature, fever, or medical status");
   });
 });

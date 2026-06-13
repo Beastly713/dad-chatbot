@@ -1,13 +1,9 @@
 import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelector";
+import { ObjectivePhase4SignalPreviewPanel } from "./ObjectivePhase4SignalPreviewPanel";
 import { ObjectivePhase4SensorStackPanel } from "./ObjectivePhase4SensorStackPanel";
 import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatusPanel";
 
 const PHASE4_PLACEHOLDER_REGIONS = [
-  {
-    title: "Signal previews",
-    detail:
-      "Placeholder for chart-ready signal preview panels. Signal data fixtures are added in a later commit.",
-  },
   {
     title: "Processing pipeline",
     detail:
@@ -178,6 +174,10 @@ export function ObjectivePhase4ConsoleShell() {
 
           <div className="md:col-span-2">
             <ObjectivePhase4SensorStackPanel />
+          </div>
+
+          <div className="md:col-span-2">
+            <ObjectivePhase4SignalPreviewPanel />
           </div>
 
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (

@@ -58,12 +58,20 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4SensorStackPanel.tsx",
   );
+  const signalPreviewPanel = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4SignalPreviewPanel.tsx",
+  );
 
   it("adds the Phase 4 console shell to the existing clinician objective route", () => {
     expect(fs.existsSync(page)).toBe(true);
     expect(fs.existsSync(consoleShell)).toBe(true);
     expect(fs.existsSync(sessionStatusPanel)).toBe(true);
     expect(fs.existsSync(sensorStackPanel)).toBe(true);
+    expect(fs.existsSync(signalPreviewPanel)).toBe(true);
 
     const pageContent = read(page);
 
@@ -74,7 +82,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -96,6 +104,7 @@ describe("Phase 4 objective console shell", () => {
       "Local temperature/contact trend",
       "Device temperature context",
       "Signal previews",
+      "Chart-ready signal previews",
       "Processing pipeline",
       "Quality/readiness",
       "Interpretation context",

@@ -96,10 +96,11 @@ describe("objective raw chart-ready signal panel files", () => {
       "GSR trend",
       "PPG preview",
       "Motion context",
-      "TMP117 local temperature trend",
-      "MPU device temperature",
+      "Local temperature/contact trend",
+      "Device temperature context",
       "device-health",
       "downsampled",
+      "Chart-ready signal previews",
       "chart-ready",
       "raw/prototype/simulated",
     ]) {
