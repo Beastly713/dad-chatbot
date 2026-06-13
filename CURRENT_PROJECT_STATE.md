@@ -781,3 +781,24 @@ After every few commits:
 7. Do not delete safety invariants.
 8. Do not convert future plans into implemented facts.
 9. Keep this file concise enough to be useful but detailed enough to prevent hallucination.
+
+## Latest Repo Verification
+
+GitHub connector verification completed.
+
+Verified:
+- Repo: Beastly713/dad-chatbot
+- Branch: objective-monitoring
+- Final Phase 3 implementation commit: b3cb125 chore(phase3): add final integration hardening release gate
+- Later docs checkpoint exists for CURRENT_PROJECT_STATE.md
+- Phase 3 final gate script exists: corepack yarn test:phase3:final
+- Objective branch remains clinician-only
+- Patient/chatbot objective access remains denied
+- Storage remains scaffold/in-memory unless later changed
+- Prototype hardware bridge remains disabled by default
+- Public dataset replay remains skeleton-only
+- No live Supabase execution harness should be assumed
+- No diagnostic/craving/relapse/withdrawal/intoxication/treatment/detox/medication outputs should be assumed
+
+Important correction:
+Use objective label names from the actual repo registry, not stale prompt text.
