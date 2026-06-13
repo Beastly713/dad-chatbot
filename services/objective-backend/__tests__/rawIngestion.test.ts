@@ -498,6 +498,7 @@ describe("objective raw ingestion", () => {
                 sessions,
                 assignments: assignedLookup(true),
                 rawIngestion,
+                prototypeHardwareIngestionEnabled: true,
             },
             trace,
         );

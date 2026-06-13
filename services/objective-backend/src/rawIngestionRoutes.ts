@@ -25,6 +25,7 @@ export type ObjectiveRawIngestionRouteDependencies = {
     segmentManager?: ObjectiveSegmentManager;
     auditLogger?: ObjectiveAuditLogger;
     now?: () => Date;
+    prototypeHardwareIngestionEnabled?: boolean;
 };
 
 const defaultSegmentManager = new InMemoryObjectiveSegmentManager();
@@ -122,6 +123,8 @@ function lifecycleDependencies(
         segmentManager: dependencies.segmentManager ?? defaultSegmentManager,
         auditLogger: dependencies.auditLogger,
         now: dependencies.now,
+        prototypeHardwareIngestionEnabled:
+            dependencies.prototypeHardwareIngestionEnabled,
     };
 }
 

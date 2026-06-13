@@ -42,6 +42,20 @@ export const RAW_SENSOR_FIELD_NAMES = [
     "tmp117_temp_c",
 ] as const;
 
+const OBJECTIVE_PROTOTYPE_HARDWARE_INGESTION_ENABLED_ENV =
+    "OBJECTIVE_PROTOTYPE_HARDWARE_INGESTION_ENABLED";
+
+function isTruthyPrototypeHardwareFlag(value: string | undefined): boolean {
+    const normalized = value?.trim().toLowerCase();
+
+    return (
+        normalized === "true" ||
+        normalized === "1" ||
+        normalized === "enabled" ||
+        normalized === "debug"
+    );
+}
+
 export type RawSensorFieldName = (typeof RAW_SENSOR_FIELD_NAMES)[number];
 
 export type ObjectiveRawSensorFrame = {
@@ -131,6 +145,7 @@ export type ObjectiveRawIngestionDependencies =
         rawIngestion: ObjectiveRawIngestionRepository;
         segmentManager?: ObjectiveSegmentManager;
         auditLogger?: ObjectiveAuditLogger;
+        prototypeHardwareIngestionEnabled?: boolean;
     };
 
 const NUMERIC_RAW_FIELDS = RAW_SENSOR_FIELD_NAMES.filter(
@@ -160,6 +175,18 @@ const FORBIDDEN_FRAME_KEYS = new Set([
 export class InMemoryObjectiveRawIngestionRepository extends InMemoryObjectiveRawStorageRepository {}
 
 const defaultSegmentManager = new InMemoryObjectiveSegmentManager();
+
+function isPrototypeHardwareIngestionEnabled(
+    dependencies: ObjectiveRawIngestionDependencies,
+): boolean {
+    if (typeof dependencies.prototypeHardwareIngestionEnabled === "boolean") {
+        return dependencies.prototypeHardwareIngestionEnabled;
+    }
+
+    return isTruthyPrototypeHardwareFlag(
+        process.env[OBJECTIVE_PROTOTYPE_HARDWARE_INGESTION_ENABLED_ENV],
+    );
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -529,6 +556,28 @@ export async function ingestObjectiveRawBatch(
             statusCode: 403,
             code: "objective_ingest_service_required",
             message: "Objective raw ingestion requires a service producer identity.",
+            auditEvent: {
+                event_type: "access_denied",
+                actor_id: actor.actorId,
+                actor_role: actor.role,
+                session_id: batchInput.value.session_id,
+                reason: "unsupported_role",
+                request_id: trace.requestId,
+                trace_id: trace.traceId,
+            },
+        };
+    }
+
+    if (
+        batchInput.value.source_type === "prototype_hardware" &&
+        !isPrototypeHardwareIngestionEnabled(dependencies)
+    ) {
+        return {
+            allowed: false,
+            statusCode: 403,
+            code: "objective_prototype_hardware_disabled",
+            message:
+                "Prototype hardware ingestion is disabled by default and requires an explicit server-side debug flag.",
             auditEvent: {
                 event_type: "access_denied",
                 actor_id: actor.actorId,
