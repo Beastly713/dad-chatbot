@@ -8,6 +8,7 @@ const PHASE4_SOURCE_FILES = [
   "app/(clinician)/clinician/objective/page.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectiveDashboardShell.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4ConsoleShell.tsx",
+  "app/(clinician)/clinician/objective/_components/ObjectivePhase4DemoCockpit.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4ConsoleOverviewRail.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4ScenarioSelector.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4SessionStatusPanel.tsx",
@@ -25,6 +26,7 @@ const PHASE4_SOURCE_FILES = [
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4SafetyBoundaryPanel.tsx",
   "app/(clinician)/clinician/objective/_lib/dashboardAccess.ts",
   "app/(clinician)/clinician/objective/_lib/phase4DemoScenarios.ts",
+  "app/(clinician)/clinician/objective/_lib/phase4DemoPlayback.ts",
   "app/(clinician)/clinician/objective/_lib/chartReadySignals.ts",
   "app/(clinician)/clinician/objective/_lib/qualityFeatureCards.ts",
   "app/(clinician)/clinician/objective/_lib/mlInterpretationCards.ts",
@@ -32,8 +34,13 @@ const PHASE4_SOURCE_FILES = [
 ] as const;
 
 const APPROVED_LOCAL_STATE_FILES = new Set([
+  "app/(clinician)/clinician/objective/_components/ObjectivePhase4DemoCockpit.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4ScenarioSelector.tsx",
   "app/(clinician)/clinician/objective/_components/ObjectivePhase4SessionStatusPanel.tsx",
+]);
+
+const APPROVED_LOCAL_TIMER_FILES = new Set([
+  "app/(clinician)/clinician/objective/_components/ObjectivePhase4DemoCockpit.tsx",
 ]);
 
 function frontendPath(relativePath: string): string {
@@ -138,21 +145,32 @@ describe("Phase 4 console safety coverage", () => {
 
     const shellContent = readFrontend(shellFile);
 
-    for (const panel of [
-      "ObjectivePhase4ConsoleOverviewRail",
-      "ObjectivePhase4ScenarioSelector",
-      "ObjectivePhase4SessionStatusPanel",
-      "ObjectivePhase4SensorStackPanel",
-      "ObjectivePhase4SignalPreviewPanel",
-      "ObjectivePhase4PipelinePanel",
-      "ObjectivePhase4QualityReadinessPanel",
-      "ObjectivePhase4FeatureWindowPanel",
-      "ObjectivePhase4InterpretationConfidencePanel",
-      "ObjectivePhase4TimelinePanel",
-      "ObjectivePhase4FinalSummaryPanel",
-      "ObjectivePhase4SafetyBoundaryPanel",
+    for (const required of [
+      "ObjectivePhase4DemoCockpit",
+      "Objective Monitoring Console",
     ]) {
-      expect(shellContent).toContain(panel);
+      expect(shellContent).toContain(required);
+    }
+
+    const cockpitContent = readFrontend(
+      "app/(clinician)/clinician/objective/_components/ObjectivePhase4DemoCockpit.tsx",
+    );
+    const playbackContent = readFrontend(
+      "app/(clinician)/clinician/objective/_lib/phase4DemoPlayback.ts",
+    );
+
+    for (const required of [
+      "PHASE4_DEMO_PLAYBACK_SCENARIOS",
+      "getPhase4DemoPlaybackSnapshot",
+      "setInterval",
+      "Objective Monitoring Console",
+      "Scenario setup",
+      "Playback controls",
+      "Live-looking signal previews",
+      "Processing pipeline",
+      "Safety boundaries",
+    ]) {
+      expect(`${cockpitContent}\n${playbackContent}`).toContain(required);
     }
 
     expectNoText(shellContent, "PHASE4_PLACEHOLDER_REGIONS", shellFile);
@@ -226,7 +244,7 @@ describe("Phase 4 console safety coverage", () => {
     }
   });
 
-  it("keeps the Phase 4 P0 console frontend-only, static, and persistence-free", () => {
+  it("keeps the Phase 4 P0 console frontend-only and persistence-free", () => {
     for (const relativePath of PHASE4_SOURCE_FILES) {
       const content = readFrontend(relativePath);
 
@@ -240,7 +258,6 @@ describe("Phase 4 console safety coverage", () => {
         /createClient/,
         /supabase/i,
         /prototypeHardware/,
-        /setInterval/,
         /setTimeout/,
         /Date\.now/,
         /performance\.now/,
@@ -251,8 +268,11 @@ describe("Phase 4 console safety coverage", () => {
         expectNoMatch(content, pattern, relativePath);
       }
 
+      if (!APPROVED_LOCAL_TIMER_FILES.has(relativePath)) {
+        expectNoMatch(content, /setInterval/, relativePath);
+      }
+
       for (const forbidden of [
-        "useEffect",
         "persistClinicianNote",
         "saveClinicianNote",
         "createClinicianNote",
@@ -264,6 +284,10 @@ describe("Phase 4 console safety coverage", () => {
 
       if (!APPROVED_LOCAL_STATE_FILES.has(relativePath)) {
         expectNoText(content, "useState", relativePath);
+      }
+
+      if (!APPROVED_LOCAL_TIMER_FILES.has(relativePath)) {
+        expectNoText(content, "useEffect", relativePath);
       }
     }
   });
@@ -325,6 +349,9 @@ describe("Phase 4 console safety coverage", () => {
         "ObjectivePhase4FinalSummaryPanel",
         "ObjectivePhase4SafetyBoundaryPanel",
         "ObjectivePhase4ConsoleOverviewRail",
+        "ObjectivePhase4DemoCockpit",
+        "phase4DemoPlayback",
+        "PHASE4_DEMO_PLAYBACK_SCENARIOS",
         "phase4DemoScenarios",
         "PHASE4_DEMO_SCENARIOS",
       ]) {
@@ -341,15 +368,13 @@ describe("Phase 4 console safety coverage", () => {
       "non-diagnostic",
       "source-bound",
       "simulator demo",
-      "console overview",
-      "p0 mentor demo",
+      "local demo playback",
+      "frontend-only",
       "no chatbot update",
       "no backend connection",
       "no live hardware",
       "no note persistence",
-      "not connected to chatbot responses",
-      "not patient-facing",
-      "patient and chatbot isolation",
+      "no patient-facing output",
       "safety boundaries",
     ]) {
       expect(combined).toContain(required);

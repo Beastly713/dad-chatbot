@@ -49,24 +49,12 @@ function getByTestId(container: HTMLElement, testId: string): HTMLElement {
 
 function getButton(container: HTMLElement, name: string): HTMLButtonElement {
   const buttons = Array.from(container.querySelectorAll("button"));
-  const match = buttons.find((button) => button.textContent === name);
+  const match = buttons.find((button) =>
+    (button.textContent ?? "").includes(name),
+  );
 
   if (!(match instanceof HTMLButtonElement)) {
     throw new Error(`Missing button: ${name}`);
-  }
-
-  return match;
-}
-
-function getScenarioRadio(
-  container: HTMLElement,
-  title: string,
-): HTMLInputElement {
-  const selector = `input[aria-label="Select demo scenario: ${title}"]`;
-  const match = container.querySelector(selector);
-
-  if (!(match instanceof HTMLInputElement)) {
-    throw new Error(`Missing scenario radio: ${title}`);
   }
 
   return match;
@@ -78,182 +66,221 @@ function expectRenderedText(container: HTMLElement, expected: string): void {
 
 describe("Phase 4 objective console acceptance regression", () => {
   afterEach(() => {
+    jest.useRealTimers();
     document.body.innerHTML = "";
   });
 
-  it("renders the complete Phase 4 P0 clinician console surface", () => {
+  it("renders a compact interactive cockpit instead of the previous long document stack", () => {
     const { container, unmount } = renderConsole();
 
-    for (const heading of [
-      "Console overview",
+    for (const required of [
+      "Objective Monitoring Console",
+      "Clinician-only simulator demo for source-bound physiological review",
+      "Clinician-only",
+      "Simulator demo",
+      "Non-diagnostic",
+      "Frontend-only",
+      "No chatbot update",
+      "Demo patient: demo-patient-001",
+      "Mode: Phase 4 P0",
+      "Runtime: Local demo playback",
       "Scenario setup",
+      "Playback controls",
+      "Live-looking signal previews",
+      "ECG-like preview",
+      "GSR trend",
+      "PPG-like preview",
+      "Motion/activity context",
+      "Temperature/contact context",
       "Session status",
-      "Sensor/device stack",
-      "Signal previews",
       "Processing pipeline",
-      "Quality/readiness",
-      "Feature-window summary",
-      "Interpretation context",
+      "Quality",
+      "Features",
+      "Interpretation",
       "Timeline",
-      "Final summary",
-      "Safety boundaries",
+      "Summary",
+      "Safety",
+      "clinician_visible=true",
+      "patient_visible=false",
+      "chatbot_visible=false",
     ]) {
-      expectRenderedText(container, heading);
+      expectRenderedText(container, required);
     }
 
-    for (const supportingHeading of [
-      "Chart-ready signal previews",
-      "Interpretation timeline",
-      "Quality timeline",
-      "Evidence, confidence, and uncertainty cards",
+    for (const removedStaticStackCopy of [
+      "Console overview",
+      "Static demo timeline",
+      "Static demo summary",
+      "Scenario data, signal previews, processing state, and review panels are intentionally added in later commits.",
+      "placeholder",
     ]) {
-      expectRenderedText(container, supportingHeading);
+      expect(renderedText(container).toLowerCase()).not.toContain(
+        removedStaticStackCopy.toLowerCase(),
+      );
     }
 
     unmount();
   });
 
-  it("keeps the scenario selector usable inside the complete console", () => {
+  it("lets scenario selection drive visible cockpit state", () => {
     const { container, unmount } = renderConsole();
 
     expect(
       getByTestId(container, "phase4-selected-scenario-title").textContent,
     ).toBe("Baseline review pattern");
+    expect(getByTestId(container, "phase4-scenario-focus").textContent).toBe(
+      "Stable baseline-relative evidence with review-ready quality.",
+    );
 
     act(() => {
-      getScenarioRadio(container, "ML unavailable").click();
+      getButton(container, "ML unavailable").click();
     });
 
     expect(
       getByTestId(container, "phase4-selected-scenario-title").textContent,
     ).toBe("ML unavailable");
+    expect(getByTestId(container, "phase4-scenario-focus").textContent).toBe(
+      "Model context unavailable without failing open.",
+    );
+    expectRenderedText(container, "ml_unavailable");
+    expectRenderedText(container, "Model context is unavailable in the demo.");
 
-    for (const scenario of [
-      "Baseline review pattern",
-      "Elevated physiological arousal evidence",
-      "Recovery/cooldown trend",
-      "Motion/activity-like confound",
-      "Signal quality limitation",
-      "Cross-signal disagreement",
-      "Insufficient reliable data",
-      "ML unavailable",
-    ]) {
-      expectRenderedText(container, scenario);
-    }
+    act(() => {
+      getButton(container, "Motion/activity-like confound").click();
+    });
+
+    expect(
+      getByTestId(container, "phase4-selected-scenario-title").textContent,
+    ).toBe("Motion/activity-like confound");
+    expectRenderedText(container, "movement_activity_like_confound");
+    expectRenderedText(container, "Movement context limits confidence.");
 
     unmount();
   });
 
-  it("keeps local demo session controls usable inside the complete console", () => {
+  it("advances playback progress, pipeline stages, and timeline events with local timers", () => {
+    jest.useFakeTimers();
     const { container, unmount } = renderConsole();
 
-    expect(getByTestId(container, "phase4-demo-session-state").textContent).toBe(
+    expect(getByTestId(container, "phase4-playback-status").textContent).toBe(
       "Ready",
+    );
+    expect(getByTestId(container, "phase4-playback-progress").textContent).toBe(
+      "0%",
     );
 
     act(() => {
-      getButton(container, "Start demo session").click();
+      getButton(container, "Start").click();
     });
-    expect(getByTestId(container, "phase4-demo-session-state").textContent).toBe(
+
+    expect(getByTestId(container, "phase4-playback-status").textContent).toBe(
       "Running",
     );
+
+    act(() => {
+      jest.advanceTimersByTime(2400);
+    });
+
+    expect(getByTestId(container, "phase4-playback-progress").textContent).toBe(
+      "17%",
+    );
+    expect(getByTestId(container, "phase4-current-stage").textContent).toBe(
+      "Ingestion boundary",
+    );
+
+    act(() => {
+      getButton(container, "Timeline").click();
+    });
+
+    expectRenderedText(container, "Demo source loaded");
+    expectRenderedText(container, "Ingestion boundary checked");
 
     act(() => {
       getButton(container, "Pause").click();
     });
-    expect(getByTestId(container, "phase4-demo-session-state").textContent).toBe(
+
+    expect(getByTestId(container, "phase4-playback-status").textContent).toBe(
       "Paused",
     );
 
     act(() => {
-      getButton(container, "Resume").click();
+      getButton(container, "Complete").click();
     });
-    expect(getByTestId(container, "phase4-demo-session-state").textContent).toBe(
-      "Running",
+
+    expect(getByTestId(container, "phase4-playback-status").textContent).toBe(
+      "Complete",
+    );
+    expect(getByTestId(container, "phase4-playback-progress").textContent).toBe(
+      "100%",
     );
 
     act(() => {
-      getButton(container, "Reset").click();
+      getButton(container, "Summary").click();
     });
-    expect(getByTestId(container, "phase4-demo-session-state").textContent).toBe(
-      "Ready",
+
+    expectRenderedText(container, "Baseline-relative review is ready.");
+    expectRenderedText(container, "Interpretable windows");
+    expectRenderedText(container, "Suppressed windows");
+
+    unmount();
+  });
+
+  it("switches the focused lower review tabs without showing every section at once", () => {
+    const { container, unmount } = renderConsole();
+
+    expect(getByTestId(container, "phase4-active-review-panel").textContent).toContain(
+      "Quality/readiness",
+    );
+    expect(getByTestId(container, "phase4-active-review-panel").textContent).not.toContain(
+      "Feature-window context",
     );
 
-    unmount();
-  });
+    act(() => {
+      getButton(container, "Features").click();
+    });
+    expect(getByTestId(container, "phase4-active-review-panel").textContent).toContain(
+      "Feature-window context",
+    );
+    expectRenderedText(container, "Heart-activity trend");
+    expectRenderedText(container, "Skin-conductance trend");
 
-  it("renders the expected Phase 4 P0 review content across panels", () => {
-    const { container, unmount } = renderConsole();
+    act(() => {
+      getButton(container, "Interpretation").click();
+    });
+    expect(getByTestId(container, "phase4-active-review-panel").textContent).toContain(
+      "Interpretation context",
+    );
+    expectRenderedText(container, "Safe interpretation label");
+    expectRenderedText(container, "Uncertainty");
 
-    for (const label of [
-      "P0 mentor demo",
-      "Not connected to chatbot responses",
-      "ECG preview",
-      "GSR trend",
-      "PPG preview",
-      "Motion context",
-      "Local temperature/contact trend",
-      "Device temperature context",
-      "Demo source",
-      "Ingestion boundary",
-      "Feature-window preparation",
-      "Baseline-relative context",
-      "Safe interpretation boundary",
-      "ECG quality",
-      "GSR quality",
-      "PPG quality",
-      "Motion/activity context",
-      "Temperature/contact context",
-      "Timing quality",
-      "Baseline state",
-      "Missingness",
-      "Heart-activity trend",
-      "Skin-conductance trend",
-      "Pulse-waveform context",
-      "Motion confound context",
-      "Allowed ML target",
-      "Safe interpretation label",
-      "Evidence level",
-      "Confidence",
-      "Suppression state",
-      "Baseline review window",
-      "Elevated arousal evidence period",
-      "Motion-confounded window",
-      "Cooldown period",
-      "Interpretable fraction",
-      "Suppressed windows",
-      "Signal quality distribution",
-      "Modality availability",
-      "Motion-confounded fraction",
-      "Clinician-only surface",
-      "Patient and chatbot isolation",
-      "Non-diagnostic review",
-      "Source-bound evidence",
-      "No automated escalation",
-      "Demo and persistence boundary",
-    ]) {
-      expectRenderedText(container, label);
-    }
+    act(() => {
+      getButton(container, "Summary").click();
+    });
+    expectRenderedText(container, "Summary locked");
+
+    act(() => {
+      getButton(container, "Safety").click();
+    });
+    expectRenderedText(container, "Safety boundaries");
+    expectRenderedText(container, "No patient-facing output");
+    expectRenderedText(container, "No backend connection");
 
     unmount();
   });
 
-  it("keeps the complete rendered console free of placeholders, raw fields, and unsafe clinical claims", () => {
+  it("keeps the rendered cockpit free of raw fields and unsafe clinical claims", () => {
     const { container, unmount } = renderConsole();
-    const text = renderedText(container);
-    const normalized = text.toLowerCase();
+    const normalized = renderedText(container).toLowerCase();
 
     for (const required of [
       "clinician-only",
       "non-diagnostic",
       "simulator demo",
+      "frontend-only",
       "no backend connection",
       "no chatbot update",
       "no live hardware",
       "no note persistence",
-      "not connected to chatbot responses",
-      "patient and chatbot isolation",
-      "safety boundaries",
       "source-bound",
     ]) {
       expect(normalized).toContain(required);

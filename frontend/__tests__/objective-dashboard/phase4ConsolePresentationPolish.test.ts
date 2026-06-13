@@ -28,13 +28,6 @@ function expectNoMatch(content: string, pattern: RegExp, file: string): void {
 }
 
 describe("Phase 4 console presentation polish", () => {
-  const overviewRail = appPath(
-    "(clinician)",
-    "clinician",
-    "objective",
-    "_components",
-    "ObjectivePhase4ConsoleOverviewRail.tsx",
-  );
   const shellFile = appPath(
     "(clinician)",
     "clinician",
@@ -42,32 +35,46 @@ describe("Phase 4 console presentation polish", () => {
     "_components",
     "ObjectivePhase4ConsoleShell.tsx",
   );
+  const demoCockpit = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4DemoCockpit.tsx",
+  );
+  const playbackRuntime = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_lib",
+    "phase4DemoPlayback.ts",
+  );
 
-  it("adds a static overview rail to the completed Phase 4 console", () => {
-    const overviewContent = read(overviewRail);
+  it("uses the interactive dark cockpit as the main console presentation", () => {
     const shellContent = read(shellFile);
+    const cockpitContent = read(demoCockpit);
 
-    expect(shellContent).toContain("ObjectivePhase4ConsoleOverviewRail");
+    expect(shellContent).toContain("ObjectivePhase4DemoCockpit");
 
     for (const required of [
-      "Console overview",
-      "Phase 4 P0 console overview",
-      "P0 mentor demo",
-      "Simulator demo",
-      "Clinician-only",
-      "Non-diagnostic",
-      "No backend connection",
-      "No live hardware",
-      "No note persistence",
-      "No chatbot update",
-      "Not connected to chatbot responses",
+      "bg-slate-950",
+      "shadow-2xl",
+      "xl:grid-cols-[280px_minmax(0,1fr)_320px]",
+      "role=\"tablist\"",
+      "Live-looking signal previews",
+      "Playback controls",
+      "Processing pipeline",
+      "Safety boundaries",
+      "data-testid=\"phase4-demo-cockpit\"",
+      "data-testid=\"phase4-playback-progress\"",
+      "data-testid=\"phase4-active-review-panel\"",
     ]) {
-      expect(overviewContent).toContain(required);
+      expect(cockpitContent).toContain(required);
     }
   });
 
-  it("keeps the overview rail static and frontend-only", () => {
-    const combined = `${read(overviewRail)}\n${read(shellFile)}`;
+  it("keeps the cockpit frontend-only while allowing only local demo playback timers", () => {
+    const combined = `${read(shellFile)}\n${read(demoCockpit)}\n${read(playbackRuntime)}`;
 
     for (const pattern of [
       /\bfetch\s*\(/,
@@ -79,22 +86,24 @@ describe("Phase 4 console presentation polish", () => {
       /createClient/,
       /supabase/i,
       /prototypeHardware/,
-      /setInterval/,
-      /setTimeout/,
       /Date\.now/,
       /performance\.now/,
-      /useState/,
-      /useEffect/,
       /localStorage/,
       /sessionStorage/,
       /indexedDB/,
     ]) {
-      expectNoMatch(combined, pattern, overviewRail);
+      expectNoMatch(combined, pattern, demoCockpit);
     }
+
+    expect(read(demoCockpit)).toContain("setInterval");
+    expect(read(demoCockpit)).toContain("useEffect");
+    expect(read(demoCockpit)).toContain("useState");
+    expectNoText(read(shellFile), "useState", shellFile);
+    expectNoText(read(playbackRuntime), "setInterval", playbackRuntime);
   });
 
-  it("keeps overview copy free of raw fields and unsafe clinical claims", () => {
-    const content = read(overviewRail).toLowerCase();
+  it("keeps cockpit copy free of raw fields and unsafe clinical claims", () => {
+    const content = `${read(demoCockpit)}\n${read(playbackRuntime)}`.toLowerCase();
 
     for (const forbidden of [
       "ecg_raw",
@@ -129,7 +138,7 @@ describe("Phase 4 console presentation polish", () => {
       "ciwa score",
       "stress proven",
     ]) {
-      expectNoText(content, forbidden, overviewRail);
+      expectNoText(content, forbidden, demoCockpit);
     }
   });
 });

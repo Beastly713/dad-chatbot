@@ -18,23 +18,28 @@ export function ObjectiveDashboardShell({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
-      <header className="rounded-lg border bg-background p-6 shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Clinician objective monitoring
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-          {description}
-        </p>
-        <div
-          role="note"
-          aria-label="Objective monitoring scope note"
-          className="mt-5 rounded-md border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground"
-        >
-          This Phase 3 surface shows clinician-reviewable physiological evidence
-          only. Outputs are baseline-relative, uncertainty-bearing, and
-          non-diagnostic.
+    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4">
+      <header className="rounded-lg border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-cyan-200">
+              Clinician objective monitoring
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
+              {title}
+            </h1>
+            <p className="mt-1 max-w-3xl text-sm text-slate-400">
+              {description}
+            </p>
+          </div>
+          <div
+            role="note"
+            aria-label="Objective monitoring scope note"
+            className="rounded-md border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs leading-5 text-cyan-100"
+          >
+            Scope note: clinician-reviewable, baseline-relative,
+            uncertainty-bearing, source-bound, and non-diagnostic.
+          </div>
         </div>
       </header>
 

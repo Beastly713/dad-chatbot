@@ -199,7 +199,7 @@ describe("Phase 4 safe demo scenario fixtures", () => {
     }
   });
 
-  it("wires scenario fixtures only through the Phase 4 scenario selector", () => {
+  it("wires scenario fixtures through the selector and cockpit playback runtime", () => {
     const selectorFile = appPath(
       "(clinician)",
       "clinician",
@@ -207,13 +207,31 @@ describe("Phase 4 safe demo scenario fixtures", () => {
       "_components",
       "ObjectivePhase4ScenarioSelector.tsx",
     );
+    const cockpitFile = appPath(
+      "(clinician)",
+      "clinician",
+      "objective",
+      "_components",
+      "ObjectivePhase4DemoCockpit.tsx",
+    );
+    const playbackFile = appPath(
+      "(clinician)",
+      "clinician",
+      "objective",
+      "_lib",
+      "phase4DemoPlayback.ts",
+    );
 
     const pageContent = read(pageFile);
     const shellContent = read(shellFile);
     const selectorContent = read(selectorFile);
+    const cockpitContent = read(cockpitFile);
+    const playbackContent = read(playbackFile);
 
-    expect(shellContent).toContain("ObjectivePhase4ScenarioSelector");
+    expect(shellContent).toContain("ObjectivePhase4DemoCockpit");
     expect(selectorContent).toContain("PHASE4_DEMO_SCENARIOS");
+    expect(cockpitContent).toContain("PHASE4_DEMO_PLAYBACK_SCENARIOS");
+    expect(playbackContent).toContain("PHASE4_DEMO_SCENARIO_IDS");
 
     for (const forbidden of [
       "PHASE4_DEMO_SCENARIOS",
