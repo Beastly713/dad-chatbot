@@ -286,8 +286,19 @@ describe("Stage 11 clinician objective dashboard accessibility and copy regressi
       "_components",
       "ObjectivePhase4ScenarioSelector.tsx",
     );
+    const phase4SessionStatusPanel = appPath(
+      "(clinician)",
+      "clinician",
+      "objective",
+      "_components",
+      "ObjectivePhase4SessionStatusPanel.tsx",
+    );
+    const interactivePhase4Files = new Set([
+      phase4ScenarioSelector,
+      phase4SessionStatusPanel,
+    ]);
     const files = objectiveSourceFiles().filter(
-      (file) => file !== phase4ScenarioSelector,
+      (file) => !interactivePhase4Files.has(file),
     );
 
     for (const file of files) {

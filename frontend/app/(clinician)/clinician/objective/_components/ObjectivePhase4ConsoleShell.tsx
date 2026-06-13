@@ -1,11 +1,7 @@
 import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelector";
+import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatusPanel";
 
 const PHASE4_PLACEHOLDER_REGIONS = [
-  {
-    title: "Session status",
-    detail:
-      "Placeholder for local demo session status. Playback state is added in a later commit.",
-  },
   {
     title: "Signal previews",
     detail:
@@ -173,6 +169,10 @@ export function ObjectivePhase4ConsoleShell() {
         <section className="grid gap-4 md:grid-cols-2 xl:col-span-3">
           <div className="md:col-span-2">
             <ObjectivePhase4ScenarioSelector />
+          </div>
+
+          <div className="md:col-span-2">
+            <ObjectivePhase4SessionStatusPanel />
           </div>
 
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (
