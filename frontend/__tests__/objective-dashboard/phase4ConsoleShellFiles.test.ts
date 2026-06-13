@@ -86,6 +86,13 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4InterpretationConfidencePanel.tsx",
   );
+  const timelinePanel = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4TimelinePanel.tsx",
+  );
   const qualityFeatureLib = appPath(
     "(clinician)",
     "clinician",
@@ -107,6 +114,13 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectiveMlInterpretationCards.tsx",
   );
+  const sessionTimelineLib = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_lib",
+    "sessionTimelineNotes.ts",
+  );
   const qualityReadinessPanel = appPath(
     "(clinician)",
     "clinician",
@@ -125,6 +139,7 @@ describe("Phase 4 objective console shell", () => {
     expect(fs.existsSync(qualityReadinessPanel)).toBe(true);
     expect(fs.existsSync(featureWindowPanel)).toBe(true);
     expect(fs.existsSync(interpretationConfidencePanel)).toBe(true);
+    expect(fs.existsSync(timelinePanel)).toBe(true);
 
     const pageContent = read(page);
 
@@ -135,7 +150,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(timelinePanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}\n${read(sessionTimelineLib)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -199,7 +214,15 @@ describe("Phase 4 objective console shell", () => {
       "Uncertainty reasons",
       "Contributing modalities",
       "Excluded modalities",
+      "Clinician-safe event timeline",
       "Timeline",
+      "Static demo timeline",
+      "Interpretation timeline",
+      "Quality timeline",
+      "Baseline review window",
+      "Elevated arousal evidence period",
+      "Motion-confounded window",
+      "Cooldown period",
       "Final summary",
       "Safety boundaries",
       "clinician_visible=true",

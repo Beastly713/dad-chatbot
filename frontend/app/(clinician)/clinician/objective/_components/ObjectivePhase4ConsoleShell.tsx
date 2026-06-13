@@ -6,17 +6,13 @@ import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelect
 import { ObjectivePhase4SignalPreviewPanel } from "./ObjectivePhase4SignalPreviewPanel";
 import { ObjectivePhase4SensorStackPanel } from "./ObjectivePhase4SensorStackPanel";
 import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatusPanel";
+import { ObjectivePhase4TimelinePanel } from "./ObjectivePhase4TimelinePanel";
 
 const PHASE4_PLACEHOLDER_REGIONS = [
   {
-    title: "Timeline",
-    detail:
-      "Placeholder for clinician-safe event timeline. Timeline events are added in a later commit.",
-  },
-  {
     title: "Final summary",
     detail:
-      "Placeholder for the completed demo session summary. Summary content is added in a later commit.",
+      "Placeholder for safe session summary and closing review notes. Final summary behavior is added in a later commit.",
   },
 ];
 
@@ -183,6 +179,10 @@ export function ObjectivePhase4ConsoleShell() {
 
           <div className="md:col-span-2">
             <ObjectivePhase4InterpretationConfidencePanel />
+          </div>
+
+          <div className="md:col-span-2">
+            <ObjectivePhase4TimelinePanel />
           </div>
 
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (
