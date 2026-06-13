@@ -1,25 +1,27 @@
 # Current Project State
 
-Last updated: 2026-06-13 18:55:05 IST
+Last updated: 2026-06-14 IST
 Branch: objective-monitoring
-Latest commit: d477d1d docs(project): add current project state anchor
+Latest completed runtime/UI commit: 8ad785e style(objective-ui): polish Phase 4 console presentation layout
+Checkpoint docs commit in progress: Commit 93 — docs(project): update current project state after Phase 4 P0 console
 Final Phase 3 implementation commit: b3cb125 chore(phase3): add final integration hardening release gate
 Worktree status: clean before this edit
 
 ## 1. Project purpose
 
-This repository is a safe alcohol-SUD support chatbot system with three completed engineering phases on the current branch:
+This repository is a safe alcohol-SUD support chatbot system with three completed backend/objective engineering phases and a completed Phase 4 P0 frontend console checkpoint on the current branch:
 
 - Phase 1: safety-bounded alcohol support chatbot.
 - Phase 2: subjective alcohol check-in branch for safe-support conversations.
 - Phase 3: clinician-only objective physiological monitoring branch.
+- Phase 4 P0: fixture-first clinician objective monitoring console for mentor-demo review.
 
 The project is not a diagnostic system, not a medication/detox/treatment planner, and not an emergency detector. Objective data is treated as source-bound, uncertainty-bearing, clinician-reviewable evidence only. Patient-facing chatbot behavior remains separated from objective monitoring.
 
 ## 2. Current high-level architecture
 
 - `backend/`: LangGraph chatbot, safety triage, final guard, curated alcohol KB, subjective check-in logic, and chatbot no-leak tests.
-- `frontend/`: chat frontend plus clinician objective dashboard scaffolding and dev simulator panel route files.
+- `frontend/`: chat frontend plus the Phase 4 P0 clinician objective monitoring console, clinician objective dashboard route files, and dev simulator panel route files.
 - `packages/objective-safety`: allowed/forbidden objective terminology registries and forbidden-term scanners.
 - `packages/objective-schemas`: raw sensor, batch, visibility, session metadata, derived record schemas.
 - `packages/objective-simulator`: simulator scenario profiles, timelines, raw generators, injections, CSV replay/export, streamer, CLI, and public dataset replay skeleton.
@@ -28,7 +30,7 @@ The project is not a diagnostic system, not a medication/detox/treatment planner
 - `services/objective-backend`: dedicated objective backend service with in-memory repositories, auth/assignment guards, ingestion, raw storage, feature/ML/interpretation storage, stream routes, history/replay/summary routes, audit, and hardware bridge contract.
 - `services/objective-ml`: Python ML service scaffold, rule-safe stub, dev-only classical model pipeline, vectorizer, artifacts, and tests.
 - `supabase/migrations`: static objective SQL/RLS/view/audit/schema migrations with static test coverage.
-- `scripts/objective`: Phase 3 release gates and final hardening gate.
+- `scripts/objective`: Phase 3 release gates, final hardening gate, and Phase 4 console validation gate.
 - `docs/objective/phase3-validation`: validation reports, model card, calibration note, no-leak report, RBAC/RLS report, and release checklist.
 
 ## 3. Phase 1: Safe alcohol-SUD chatbot
@@ -484,6 +486,92 @@ corepack yarn build
 git diff --check
 ```
 
+## Phase 4 P0 Console Checkpoint — Completed Through Commit 92
+
+Phase 4 P0 clinician objective console work is complete through Commit 92.
+Commit 93 is this checkpoint-docs update.
+
+Commit range:
+
+- Commit 76 — established the Phase 4 console shell.
+- Commit 77 — added safe frontend demo scenario fixtures.
+- Commit 78 — added the safe scenario selector.
+- Commit 79 — added local demo session status controls.
+- Commit 80 — added the static sensor/device stack telemetry panel.
+- Commit 81 — added chart-ready signal preview panels.
+- Commit 82 — added the static processing pipeline visualization.
+- Commit 83 — added quality/readiness panels.
+- Commit 84 — added the feature-window summary panel.
+- Commit 85 — added interpretation confidence/context panels.
+- Commit 86 — added the clinician-safe event timeline.
+- Commit 87 — added the final demo session summary.
+- Commit 88 — added the safety boundary panel.
+- Commit 89 — added consolidated Phase 4 console safety coverage.
+- Commit 90 — added full Phase 4 console acceptance regression.
+- Commit 91 — added the reusable Phase 4 console validation gate.
+- Commit 92 — added presentation polish through the console overview rail and cleaned scanner-flagged unsafe wording.
+
+Current Phase 4 P0 console modules:
+
+- Console shell.
+- Console overview rail.
+- Scenario selector.
+- Local demo session status controls.
+- Sensor/device stack.
+- Chart-ready signal previews.
+- Static processing pipeline.
+- Quality/readiness cards.
+- Feature-window summary.
+- Interpretation confidence/context.
+- Clinician-safe timeline.
+- Final demo session summary.
+- Safety boundaries.
+
+The Phase 4 P0 console is:
+
+- clinician-only;
+- frontend-only for the demo surface;
+- simulator-demo framed;
+- non-diagnostic;
+- source-bound and uncertainty-bearing;
+- not connected to chatbot responses;
+- not patient-facing;
+- not connected to live hardware;
+- not connected to backend streaming;
+- not writing clinician notes;
+- not persisting session history from the P0 console.
+
+The Phase 4 P0 console must not be treated as production monitoring. It does not add hardware ingestion, live objective backend streaming, Supabase persistence, clinician note persistence, scenario playback binding, patient objective UI, or chatbot integration.
+
+## Phase 4 P0 Validation Status
+
+The following validation passed after Commit 92:
+
+```bash
+corepack yarn test:phase4:console
+corepack yarn workspace frontend test -- objective-dashboard --runInBand
+corepack yarn test:no-leaks
+corepack yarn test:phase1
+corepack yarn test:phase2
+corepack yarn test:phase3:final
+corepack yarn lint
+corepack yarn typecheck
+corepack yarn build
+git diff --check
+```
+
+Known validation note:
+
+A non-escalated `corepack yarn test:phase3:final` run can hit the known sandbox route-test failure: `listen EPERM` on `127.0.0.1`. During Commit 92 validation, the gate passed after rerunning with escalation.
+
+Commit 92 also cleaned existing Phase 4 UI copy that triggered the Phase 3 forbidden-claim scanner.
+
+Current stopping point after Commit 93:
+
+- Phase 4 P0 mentor-demo console is complete and validated.
+- `CURRENT_PROJECT_STATE.md` has been updated as the checkpoint anchor.
+- Next work should begin from this checkpoint and must preserve all existing Phase 1, Phase 2, Phase 3, and Phase 4 no-leak boundaries.
+
 ## 7. Current endpoint inventory
 
 Confirmed from objective backend route source files:
@@ -519,6 +607,7 @@ GET /api/objective/sessions/:sessionId/stream?token=...
 Frontend objective files verified:
 
 - Clinician objective route group under `frontend/app/(clinician)/clinician/objective`.
+- Main `/clinician/objective` route is the Phase 4 P0 Objective Monitoring Console.
 - Clinician pages:
   - `/clinician/objective`
   - `/clinician/objective/live/[sessionId]`
@@ -528,6 +617,7 @@ Frontend objective files verified:
 - Developer simulator page:
   - `/dev/objective-simulator`
 - Objective dashboard tests under `frontend/__tests__/objective-dashboard`.
+- Phase 4 console validation gate: `corepack yarn test:phase4:console`.
 
 No patient objective route was verified. Chatbot objective routes are explicitly guarded by no-leak tests as absent.
 
@@ -573,6 +663,7 @@ corepack yarn test:phase1
 corepack yarn test:phase2
 corepack yarn test:phase3
 corepack yarn test:no-leaks
+corepack yarn test:phase4:console
 corepack yarn test:phase3:final
 corepack yarn lint
 corepack yarn typecheck
@@ -596,6 +687,8 @@ corepack yarn test:objective
 
 `corepack yarn test:phase3:final` should run sequentially and is the current integrated hardening gate.
 
+`corepack yarn test:phase4:console` runs the frontend objective-dashboard regression suite and the objective no-leak regression sequentially for Phase 4 console changes.
+
 ## 11. Known limitations
 
 - Objective backend storage is largely in-memory/scaffold-level in the inspected source.
@@ -608,7 +701,7 @@ corepack yarn test:objective
 - ML is bounded engineering scaffold/dev-only pipeline, not clinically validated.
 - Calibration docs exist, but no clinical calibration is claimed.
 - Objective monitoring is clinician-reviewable only.
-- Frontend dashboard sections are mostly static safety scaffolds and tested route/copy components.
+- Phase 4 P0 frontend console is a mentor-demo surface. It is fixture-first/static-demo scoped and does not prove production monitoring, live backend streaming, live hardware input, scenario playback binding, Supabase writes, clinician note persistence, or chatbot integration.
 - Do not assume production-grade DB-backed objective infrastructure unless implemented later.
 
 ## 12. Known warnings/environment issues
@@ -622,6 +715,7 @@ Observed during recent validation and supported by command outputs in this branc
 - Next build may warn that edge runtime disables static generation for a page.
 - Next lint may warn that the Next.js plugin was not detected in ESLint configuration.
 - In restricted sandboxes, route tests that bind `127.0.0.1` may fail with `listen EPERM`; rerun with local-server permissions.
+- During Commit 92 validation, non-escalated `corepack yarn test:phase3:final` hit the known `listen EPERM` route-test issue and passed after rerunning with escalation.
 - Root typecheck and build should be run sequentially. Do not run them concurrently because generated `.next/types` can race in some environments.
 
 ## 13. Non-negotiable safety invariants
@@ -790,13 +884,17 @@ Verified:
 - Repo: Beastly713/dad-chatbot
 - Branch: objective-monitoring
 - Final Phase 3 implementation commit: b3cb125 chore(phase3): add final integration hardening release gate
-- Later docs checkpoint exists for CURRENT_PROJECT_STATE.md
+- Phase 4 P0 console is complete through Commit 92
+- Commit 93 is the current checkpoint-docs update for CURRENT_PROJECT_STATE.md
 - Phase 3 final gate script exists: corepack yarn test:phase3:final
+- Phase 4 console validation gate exists: corepack yarn test:phase4:console
 - Objective branch remains clinician-only
 - Patient/chatbot objective access remains denied
+- Phase 4 P0 console remains frontend-only, simulator-demo framed, non-diagnostic, source-bound, and not connected to chatbot responses
 - Storage remains scaffold/in-memory unless later changed
 - Prototype hardware bridge remains disabled by default
 - Public dataset replay remains skeleton-only
+- No Phase 4 P0 live hardware stream, backend streaming, clinician note persistence, scenario playback binding, or Supabase persistence should be assumed
 - No live Supabase execution harness should be assumed
 - No diagnostic/craving/relapse/withdrawal/intoxication/treatment/detox/medication outputs should be assumed
 
