@@ -7,6 +7,7 @@ import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelect
 import { ObjectivePhase4SignalPreviewPanel } from "./ObjectivePhase4SignalPreviewPanel";
 import { ObjectivePhase4SensorStackPanel } from "./ObjectivePhase4SensorStackPanel";
 import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatusPanel";
+import { ObjectivePhase4SafetyBoundaryPanel } from "./ObjectivePhase4SafetyBoundaryPanel";
 import { ObjectivePhase4TimelinePanel } from "./ObjectivePhase4TimelinePanel";
 
 function ObjectiveConsoleBadge({ label }: { label: string }) {
@@ -162,6 +163,10 @@ export function ObjectivePhase4ConsoleShell() {
 
           <div className="md:col-span-2">
             <ObjectivePhase4FinalSummaryPanel />
+          </div>
+
+          <div className="md:col-span-2">
+            <ObjectivePhase4SafetyBoundaryPanel />
           </div>
         </section>
       </section>

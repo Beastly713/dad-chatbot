@@ -86,6 +86,13 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4FinalSummaryPanel.tsx",
   );
+  const safetyBoundaryPanel = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4SafetyBoundaryPanel.tsx",
+  );
   const interpretationConfidencePanel = appPath(
     "(clinician)",
     "clinician",
@@ -148,6 +155,7 @@ describe("Phase 4 objective console shell", () => {
     expect(fs.existsSync(interpretationConfidencePanel)).toBe(true);
     expect(fs.existsSync(timelinePanel)).toBe(true);
     expect(fs.existsSync(finalSummaryPanel)).toBe(true);
+    expect(fs.existsSync(safetyBoundaryPanel)).toBe(true);
 
     const pageContent = read(page);
 
@@ -158,7 +166,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(timelinePanel)}\n${read(finalSummaryPanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}\n${read(sessionTimelineLib)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(timelinePanel)}\n${read(finalSummaryPanel)}\n${read(safetyBoundaryPanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}\n${read(sessionTimelineLib)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -244,6 +252,15 @@ describe("Phase 4 objective console shell", () => {
       "Automated summary scope",
       "No note persistence",
       "Safety boundaries",
+      "Safety and visibility scope",
+      "Clinician-only surface",
+      "Patient and chatbot isolation",
+      "Non-diagnostic review",
+      "Source-bound evidence",
+      "No automated escalation",
+      "Demo and persistence boundary",
+      "Phase 4 P0 boundary reminder",
+      "No live hardware",
       "clinician_visible=true",
       "patient_visible=false",
       "chatbot_visible=false",
