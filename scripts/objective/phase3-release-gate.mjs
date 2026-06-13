@@ -75,6 +75,7 @@ const TASKS = {
             "prototypeHardwareBridgeContract.test.ts",
             "prototypeHardwareBridgeSecurity.test.ts",
             "stage17FinalPhase3AcceptanceMatrix.test.ts",
+            "stage17ValidationArtifacts.test.ts",
         ].join(" "),
     ],
 
