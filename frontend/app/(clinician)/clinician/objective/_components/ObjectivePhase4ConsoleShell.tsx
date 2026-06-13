@@ -1,4 +1,5 @@
 import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelector";
+import { ObjectivePhase4SensorStackPanel } from "./ObjectivePhase4SensorStackPanel";
 import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatusPanel";
 
 const PHASE4_PLACEHOLDER_REGIONS = [
@@ -173,6 +174,10 @@ export function ObjectivePhase4ConsoleShell() {
 
           <div className="md:col-span-2">
             <ObjectivePhase4SessionStatusPanel />
+          </div>
+
+          <div className="md:col-span-2">
+            <ObjectivePhase4SensorStackPanel />
           </div>
 
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (

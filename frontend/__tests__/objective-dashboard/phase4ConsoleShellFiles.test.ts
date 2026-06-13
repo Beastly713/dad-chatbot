@@ -51,11 +51,19 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4SessionStatusPanel.tsx",
   );
+  const sensorStackPanel = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4SensorStackPanel.tsx",
+  );
 
   it("adds the Phase 4 console shell to the existing clinician objective route", () => {
     expect(fs.existsSync(page)).toBe(true);
     expect(fs.existsSync(consoleShell)).toBe(true);
     expect(fs.existsSync(sessionStatusPanel)).toBe(true);
+    expect(fs.existsSync(sensorStackPanel)).toBe(true);
 
     const pageContent = read(page);
 
@@ -66,7 +74,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -80,6 +88,13 @@ describe("Phase 4 objective console shell", () => {
       "Not connected to chatbot responses",
       "Scenario setup",
       "Session status",
+      "Sensor/device stack",
+      "ECG preview",
+      "GSR trend",
+      "PPG preview",
+      "Motion context",
+      "Local temperature/contact trend",
+      "Device temperature context",
       "Signal previews",
       "Processing pipeline",
       "Quality/readiness",
