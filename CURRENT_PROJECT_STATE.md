@@ -1,9 +1,10 @@
 # Current Project State
 
-Last updated: 2026-06-13 18:39:31 IST
+Last updated: 2026-06-13 18:55:05 IST
 Branch: objective-monitoring
-Latest commit: b3cb125 chore(phase3): add final integration hardening release gate
-Worktree status: clean before this file was created
+Latest commit: d477d1d docs(project): add current project state anchor
+Final Phase 3 implementation commit: b3cb125 chore(phase3): add final integration hardening release gate
+Worktree status: clean before this edit
 
 ## 1. Project purpose
 
@@ -107,12 +108,31 @@ The project is not a diagnostic system, not a medication/detox/treatment planner
 
 ### Current status
 
-Phase 3 is complete through Commit 75 in the inspected repository. Evidence:
+Phase 3 is complete through Commit 75 in the inspected repository.
 
-- Latest commit is `b3cb125 chore(phase3): add final integration hardening release gate`.
+Completion marker:
+
+- Phase 3 blueprint status: 75/75 planned commits complete.
+- Final verified Phase 3 implementation commit: `b3cb125 chore(phase3): add final integration hardening release gate`.
+- Current branch: `objective-monitoring`.
+- Current latest commit at this checkpoint: `d477d1d docs(project): add current project state anchor`.
+
+Evidence:
+
 - `docs/objective/phase3-validation/release-readiness-checklist.md` marks Phase 3 release areas complete and names Commit 75 final hardening.
 - `scripts/objective/phase3-final-release-gate.mjs` exists and runs Phase 1, Phase 2, Phase 3, no-leak, lint, typecheck, build, and `git diff --check` sequentially.
 - `services/objective-backend/__tests__/stage17FinalIntegrationHardening.test.ts` exists and verifies final gate coverage and release evidence.
+
+Final reported validation/gates passed for Commit 75:
+
+- `corepack yarn test:phase1`
+- `corepack yarn test:phase2`
+- `corepack yarn test:phase3`
+- `corepack yarn test:no-leaks`
+- `corepack yarn lint`
+- `corepack yarn typecheck`
+- `corepack yarn build`
+- `git diff --check`
 
 ### Implemented subsystems
 
@@ -417,6 +437,34 @@ Implemented:
 - `services/objective-backend/__tests__/stage17FinalIntegrationHardening.test.ts`
 - Validation artifacts in `docs/objective/phase3-validation`.
 
+Final Stage 17 acceptance matrix scenarios:
+
+- baseline session
+- elevated arousal session
+- recovery session
+- motion confound
+- dropout
+- poor contact
+- signal conflict
+- ML unavailable
+- dashboard reconnect
+- revoked clinician access
+- patient denial
+- chatbot no-leak
+- forbidden-label scan
+
+Required Phase 3 validation artifact files:
+
+- `docs/objective/phase3-validation/simulator-scenario-coverage-matrix.md`
+- `docs/objective/phase3-validation/feature-validation-report.md`
+- `docs/objective/phase3-validation/ml-model-card.md`
+- `docs/objective/phase3-validation/calibration-note.md`
+- `docs/objective/phase3-validation/dashboard-safety-review-checklist.md`
+- `docs/objective/phase3-validation/rbac-rls-report.md`
+- `docs/objective/phase3-validation/red-team-report.md`
+- `docs/objective/phase3-validation/no-leak-report.md`
+- `docs/objective/phase3-validation/release-readiness-checklist.md`
+
 Final gate:
 
 ```bash
@@ -506,13 +554,15 @@ Service:
 
 - Used for simulator/service producer behavior.
 - Raw ingestion is service-only in the ingestion implementation and tests.
-- Service can create simulator sessions.
+- Service can create source sessions where route/guard logic permits it.
+- Service must not be treated as a clinician history, replay, summary, traceability, or dashboard reader unless a future route explicitly implements that behavior.
 
 Developer:
 
 - Developer tooling exists for simulator/debug paths.
 - Prototype hardware bridge access is debug/contract scoped and disabled by default.
 - Developer access is not ordinary patient/clinician objective data access unless explicitly implemented later.
+- Developer simulator and hardware paths are non-production tooling paths and must remain gated.
 
 ## 10. Validation commands
 
@@ -550,6 +600,8 @@ corepack yarn test:objective
 
 - Objective backend storage is largely in-memory/scaffold-level in the inspected source.
 - Static SQL/RLS tests exist, but no live Supabase execution harness was verified.
+- Supabase migrations/RLS/views are present and statically tested, but live Postgres/Supabase execution is not proven by this checkpoint.
+- No live Supabase adapter/execution harness for objective backend history, replay, summary, stream, or raw storage persistence was verified.
 - No production hardware ingestion is enabled.
 - Prototype hardware bridge is disabled by default.
 - Public dataset replay is skeleton-only.
@@ -650,6 +702,33 @@ lie-detector
 patient-truthfulness
 sobriety-status
 ```
+
+Forbidden-term exception:
+
+Forbidden terms may appear in safety registries, scanner implementations, regression tests, validation-artifact forbidden-term lists, and documentation sections that explicitly name them as blocked terms. They must not appear as emitted objective outputs, clinician-safe payload fields, patient/chatbot surfaces, route names, clinical claims, or product behavior.
+
+Allowed objective interpretation labels from `packages/objective-safety/src/registries.ts` are:
+
+```text
+low_or_baseline_arousal_evidence
+elevated_physiological_arousal_evidence
+stress_like_autonomic_activation_evidence
+recovery_cooldown_trend
+movement_activity_like_confound
+signal_quality_limitation
+cross_signal_agreement
+cross_signal_disagreement
+insufficient_reliable_data
+ml_unavailable
+simulated_data_notice
+```
+
+Naming warning:
+
+- Current repo schema uses `recovery_cooldown_trend` as the allowed objective interpretation label.
+- Current repo ML classes use `recovery_cooldown`.
+- Do not invent `recovery_or_cooldown_evidence`.
+- Do not use `recovery_cooldown_evidence` unless the safety registry/schema is explicitly changed later.
 
 ## 15. Safe vocabulary
 
