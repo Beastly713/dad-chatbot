@@ -37,6 +37,13 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4ConsoleShell.tsx",
   );
+  const scenarioSelector = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4ScenarioSelector.tsx",
+  );
 
   it("adds the Phase 4 console shell to the existing clinician objective route", () => {
     expect(fs.existsSync(page)).toBe(true);
@@ -51,7 +58,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}`;
 
     for (const required of [
       "Objective Monitoring Console",

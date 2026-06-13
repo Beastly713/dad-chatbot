@@ -1,9 +1,6 @@
+import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelector";
+
 const PHASE4_PLACEHOLDER_REGIONS = [
-  {
-    title: "Scenario setup",
-    detail:
-      "Placeholder for safe demo scenario selection. Scenario fixtures are added in a later commit.",
-  },
   {
     title: "Session status",
     detail:
@@ -174,6 +171,10 @@ export function ObjectivePhase4ConsoleShell() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:col-span-3">
+          <div className="md:col-span-2">
+            <ObjectivePhase4ScenarioSelector />
+          </div>
+
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (
             <ObjectiveConsoleRegion
               key={region.title}

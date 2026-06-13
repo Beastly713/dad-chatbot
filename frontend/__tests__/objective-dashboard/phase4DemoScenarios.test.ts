@@ -4,6 +4,7 @@ import {
   getPhase4DemoScenarioById,
   isPhase4DemoInterpretationLabel,
   PHASE4_ALLOWED_INTERPRETATION_LABELS,
+  PHASE4_DEFAULT_DEMO_SCENARIO_ID,
   PHASE4_DEMO_SCENARIO_IDS,
   PHASE4_DEMO_SCENARIOS,
   PHASE4_DEMO_SOURCE,
@@ -113,6 +114,10 @@ describe("Phase 4 safe demo scenario fixtures", () => {
       ).toBe(true);
       expect(scenario.reviewFocus.length).toBeGreaterThan(0);
     }
+
+    expect(getPhase4DemoScenarioById(PHASE4_DEFAULT_DEMO_SCENARIO_ID).id).toBe(
+      PHASE4_DEFAULT_DEMO_SCENARIO_ID,
+    );
   });
 
   it("keeps clinician-visible scenario copy free of forbidden clinical claims", () => {
@@ -194,8 +199,21 @@ describe("Phase 4 safe demo scenario fixtures", () => {
     }
   });
 
-  it("keeps scenario fixtures detached from the Commit 76 shell for now", () => {
-    const combinedRouteContent = `${read(pageFile)}\n${read(shellFile)}`;
+  it("wires scenario fixtures only through the Phase 4 scenario selector", () => {
+    const selectorFile = appPath(
+      "(clinician)",
+      "clinician",
+      "objective",
+      "_components",
+      "ObjectivePhase4ScenarioSelector.tsx",
+    );
+
+    const pageContent = read(pageFile);
+    const shellContent = read(shellFile);
+    const selectorContent = read(selectorFile);
+
+    expect(shellContent).toContain("ObjectivePhase4ScenarioSelector");
+    expect(selectorContent).toContain("PHASE4_DEMO_SCENARIOS");
 
     for (const forbidden of [
       "PHASE4_DEMO_SCENARIOS",
@@ -203,7 +221,7 @@ describe("Phase 4 safe demo scenario fixtures", () => {
       "getPhase4DemoScenarioById",
       "phase4DemoScenarios",
     ]) {
-      expectNoText(combinedRouteContent, forbidden, pageFile);
+      expectNoText(pageContent, forbidden, pageFile);
     }
   });
 });

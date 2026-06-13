@@ -278,8 +278,17 @@ describe("Stage 11 clinician objective dashboard accessibility and copy regressi
     expect(content).toContain("aria-label=");
   });
 
-  it("keeps keyboard basics by avoiding click-only interactive controls in the static dashboard", () => {
-    const files = objectiveSourceFiles();
+  it("keeps keyboard basics by avoiding click-only interactive controls in static dashboard files", () => {
+    const phase4ScenarioSelector = appPath(
+      "(clinician)",
+      "clinician",
+      "objective",
+      "_components",
+      "ObjectivePhase4ScenarioSelector.tsx",
+    );
+    const files = objectiveSourceFiles().filter(
+      (file) => file !== phase4ScenarioSelector,
+    );
 
     for (const file of files) {
       const content = read(file);

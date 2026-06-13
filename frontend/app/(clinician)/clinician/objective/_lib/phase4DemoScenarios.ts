@@ -41,6 +41,9 @@ export const PHASE4_DEMO_SCENARIO_IDS = [
 
 export type Phase4DemoScenarioId = (typeof PHASE4_DEMO_SCENARIO_IDS)[number];
 
+export const PHASE4_DEFAULT_DEMO_SCENARIO_ID: Phase4DemoScenarioId =
+  "baseline_review_pattern";
+
 export type Phase4DemoScenario = Readonly<{
   id: Phase4DemoScenarioId;
   title: string;
@@ -78,7 +81,7 @@ export const PHASE4_DEMO_SCENARIOS = [
     reviewFocus: [
       "Baseline-relative pattern is elevated.",
       "Interpretation remains uncertainty-bearing.",
-      "No diagnosis or risk-score framing is used.",
+      "No diagnostic or scoring framing is used.",
     ],
     source: PHASE4_DEMO_SOURCE,
     visibility: PHASE4_DEMO_VISIBILITY,
@@ -88,7 +91,7 @@ export const PHASE4_DEMO_SCENARIOS = [
     title: "Recovery/cooldown trend",
     eyebrow: "Return toward baseline",
     description:
-      "Shows a source-bound cooldown pattern using the repo-verified recovery_cooldown_trend label.",
+      "Shows a source-bound cooldown pattern that returns toward baseline-relative context.",
     primaryInterpretationLabel: "recovery_cooldown_trend",
     reviewFocus: [
       "Pattern moves toward baseline-relative context.",
@@ -108,7 +111,7 @@ export const PHASE4_DEMO_SCENARIOS = [
     reviewFocus: [
       "Motion context is treated as a technical limitation.",
       "Confidence should be reduced or qualified.",
-      "No intoxication or behavior claim is made.",
+      "No behavioral or clinical claim is made.",
     ],
     source: PHASE4_DEMO_SOURCE,
     visibility: PHASE4_DEMO_VISIBILITY,
