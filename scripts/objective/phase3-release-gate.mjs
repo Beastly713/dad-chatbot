@@ -67,6 +67,17 @@ const TASKS = {
         ].join(" "),
     ],
 
+    acceptance: [
+        [
+            "yarn workspace @dad-chatbot/objective-backend test --",
+            "stage13SimulatorDashboardHappyPath.test.ts",
+            "stage13DegradedScenarios.test.ts",
+            "prototypeHardwareBridgeContract.test.ts",
+            "prototypeHardwareBridgeSecurity.test.ts",
+            "stage17FinalPhase3AcceptanceMatrix.test.ts",
+        ].join(" "),
+    ],
+
     dashboard: [
         "yarn workspace frontend test -- objective-dashboard --runInBand",
     ],
@@ -100,6 +111,7 @@ const GROUPS = {
         "ml",
         "interpretation",
         "rbac",
+        "acceptance",
         "dashboard",
         "safety",
         "no-leaks",
@@ -131,9 +143,11 @@ function commandsFor(taskName, seen = new Set()) {
 }
 
 function run(command) {
-    console.log(`\n[phase3-release-gate] ${command}`);
+    const runnableCommand = command.replace(/^yarn\b/, "corepack yarn");
 
-    const result = spawnSync(command, {
+    console.log(`\n[phase3-release-gate] ${runnableCommand}`);
+
+    const result = spawnSync(runnableCommand, {
         stdio: "inherit",
         shell: true,
         env: process.env,
