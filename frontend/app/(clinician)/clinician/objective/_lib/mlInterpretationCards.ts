@@ -2,26 +2,30 @@ export type ObjectiveDashboardMlTarget =
   "baseline_relative_elevated_physiological_arousal_evidence";
 
 export type ObjectiveDashboardInterpretationLabel =
-  | "baseline_or_low_arousal_evidence"
+  | "low_or_baseline_arousal_evidence"
   | "elevated_physiological_arousal_evidence"
-  | "recovery_or_cooldown_evidence"
-  | "motion_confounded_window"
-  | "poor_contact_or_dropout"
-  | "signal_conflict"
+  | "stress_like_autonomic_activation_evidence"
+  | "recovery_cooldown_trend"
+  | "movement_activity_like_confound"
+  | "signal_quality_limitation"
+  | "cross_signal_agreement"
+  | "cross_signal_disagreement"
   | "insufficient_reliable_data"
-  | "ml_unavailable";
+  | "ml_unavailable"
+  | "simulated_data_notice";
 
 export type ObjectiveDashboardEvidenceLevel =
-  | "none"
+  | "none_observed"
   | "low"
   | "moderate"
-  | "high";
+  | "elevated"
+  | "insufficient_data";
 
 export type ObjectiveDashboardConfidenceLabel =
   | "low_confidence"
   | "moderate_confidence"
   | "high_confidence"
-  | "not_confident";
+  | "not_available";
 
 export type ObjectiveDashboardSuppressionState =
   | "not_suppressed"
@@ -66,22 +70,28 @@ export function getObjectiveInterpretationLabel(
   label: ObjectiveDashboardInterpretationLabel,
 ): string {
   switch (label) {
-    case "baseline_or_low_arousal_evidence":
-      return "Baseline or low arousal evidence";
+    case "low_or_baseline_arousal_evidence":
+      return "Low or baseline arousal evidence";
     case "elevated_physiological_arousal_evidence":
       return "Elevated physiological arousal evidence";
-    case "recovery_or_cooldown_evidence":
-      return "Recovery or cooldown evidence";
-    case "motion_confounded_window":
-      return "Motion-confounded window";
-    case "poor_contact_or_dropout":
-      return "Poor contact or dropout";
-    case "signal_conflict":
-      return "Signal conflict";
+    case "stress_like_autonomic_activation_evidence":
+      return "Stress-like autonomic activation evidence";
+    case "recovery_cooldown_trend":
+      return "Recovery/cooldown trend";
+    case "movement_activity_like_confound":
+      return "Movement/activity-like confound";
+    case "signal_quality_limitation":
+      return "Signal quality limitation";
+    case "cross_signal_agreement":
+      return "Cross-signal agreement";
+    case "cross_signal_disagreement":
+      return "Cross-signal disagreement";
     case "insufficient_reliable_data":
       return "Insufficient reliable data";
     case "ml_unavailable":
       return "ML unavailable";
+    case "simulated_data_notice":
+      return "Simulated data notice";
   }
 }
 
@@ -89,14 +99,16 @@ export function getObjectiveEvidenceLevelLabel(
   level: ObjectiveDashboardEvidenceLevel,
 ): string {
   switch (level) {
-    case "none":
-      return "No usable evidence";
+    case "none_observed":
+      return "No evidence observed";
     case "low":
       return "Low evidence";
     case "moderate":
       return "Moderate evidence";
-    case "high":
-      return "High evidence";
+    case "elevated":
+      return "Elevated evidence";
+    case "insufficient_data":
+      return "Insufficient data";
   }
 }
 
@@ -110,8 +122,8 @@ export function getObjectiveConfidenceLabel(
       return "Moderate confidence";
     case "high_confidence":
       return "High confidence";
-    case "not_confident":
-      return "Not confident";
+    case "not_available":
+      return "Not available";
   }
 }
 

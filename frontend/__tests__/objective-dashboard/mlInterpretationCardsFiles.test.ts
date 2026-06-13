@@ -98,6 +98,37 @@ describe("objective ML and interpretation dashboard files", () => {
     }
   });
 
+  it("uses registry-aligned safe frontend interpretation labels", () => {
+    const content = read(mlLib);
+
+    for (const required of [
+      "low_or_baseline_arousal_evidence",
+      "elevated_physiological_arousal_evidence",
+      "stress_like_autonomic_activation_evidence",
+      "recovery_cooldown_trend",
+      "movement_activity_like_confound",
+      "signal_quality_limitation",
+      "cross_signal_agreement",
+      "cross_signal_disagreement",
+      "insufficient_reliable_data",
+      "ml_unavailable",
+      "simulated_data_notice",
+    ]) {
+      expect(content).toContain(required);
+    }
+
+    for (const oldLabel of [
+      "baseline_or_low_arousal_evidence",
+      "recovery_or_cooldown_evidence",
+      "motion_confounded_window",
+      "poor_contact_or_dropout",
+      "signal_conflict",
+      "not_confident",
+    ]) {
+      expectNoText(content, oldLabel, mlLib);
+    }
+  });
+
   it("states that model score is bounded input and not standalone conclusion", () => {
     const combined = `${read(mlLib)}\n${read(mlComponent)}`.toLowerCase();
 

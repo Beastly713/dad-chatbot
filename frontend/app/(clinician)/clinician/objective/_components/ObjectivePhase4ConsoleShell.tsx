@@ -1,4 +1,5 @@
 import { ObjectivePhase4FeatureWindowPanel } from "./ObjectivePhase4FeatureWindowPanel";
+import { ObjectivePhase4InterpretationConfidencePanel } from "./ObjectivePhase4InterpretationConfidencePanel";
 import { ObjectivePhase4PipelinePanel } from "./ObjectivePhase4PipelinePanel";
 import { ObjectivePhase4QualityReadinessPanel } from "./ObjectivePhase4QualityReadinessPanel";
 import { ObjectivePhase4ScenarioSelector } from "./ObjectivePhase4ScenarioSelector";
@@ -8,14 +9,9 @@ import { ObjectivePhase4SessionStatusPanel } from "./ObjectivePhase4SessionStatu
 
 const PHASE4_PLACEHOLDER_REGIONS = [
   {
-    title: "Interpretation context",
-    detail:
-      "Placeholder for bounded interpretation, confidence, and uncertainty context. Interpretation fixtures are added in a later commit.",
-  },
-  {
     title: "Timeline",
     detail:
-      "Placeholder for clinician-safe session events. Timeline logic is added in a later commit.",
+      "Placeholder for clinician-safe event timeline. Timeline events are added in a later commit.",
   },
   {
     title: "Final summary",
@@ -183,6 +179,10 @@ export function ObjectivePhase4ConsoleShell() {
 
           <div className="md:col-span-2">
             <ObjectivePhase4FeatureWindowPanel />
+          </div>
+
+          <div className="md:col-span-2">
+            <ObjectivePhase4InterpretationConfidencePanel />
           </div>
 
           {PHASE4_PLACEHOLDER_REGIONS.map((region) => (

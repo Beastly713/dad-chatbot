@@ -79,12 +79,33 @@ describe("Phase 4 objective console shell", () => {
     "_components",
     "ObjectivePhase4FeatureWindowPanel.tsx",
   );
+  const interpretationConfidencePanel = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectivePhase4InterpretationConfidencePanel.tsx",
+  );
   const qualityFeatureLib = appPath(
     "(clinician)",
     "clinician",
     "objective",
     "_lib",
     "qualityFeatureCards.ts",
+  );
+  const mlInterpretationLib = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_lib",
+    "mlInterpretationCards.ts",
+  );
+  const mlInterpretationComponent = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_components",
+    "ObjectiveMlInterpretationCards.tsx",
   );
   const qualityReadinessPanel = appPath(
     "(clinician)",
@@ -103,6 +124,7 @@ describe("Phase 4 objective console shell", () => {
     expect(fs.existsSync(pipelinePanel)).toBe(true);
     expect(fs.existsSync(qualityReadinessPanel)).toBe(true);
     expect(fs.existsSync(featureWindowPanel)).toBe(true);
+    expect(fs.existsSync(interpretationConfidencePanel)).toBe(true);
 
     const pageContent = read(page);
 
@@ -113,7 +135,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required shell-only module regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(qualityFeatureLib)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(scenarioSelector)}\n${read(sessionStatusPanel)}\n${read(sensorStackPanel)}\n${read(signalPreviewPanel)}\n${read(pipelinePanel)}\n${read(qualityReadinessPanel)}\n${read(featureWindowPanel)}\n${read(interpretationConfidencePanel)}\n${read(qualityFeatureLib)}\n${read(mlInterpretationLib)}\n${read(mlInterpretationComponent)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -166,7 +188,17 @@ describe("Phase 4 objective console shell", () => {
       "Pulse-waveform context",
       "Motion confound context",
       "Feature context",
+      "Confidence and uncertainty context",
       "Interpretation context",
+      "Allowed ML target",
+      "Safe interpretation label",
+      "Evidence level",
+      "Confidence",
+      "Model score",
+      "Suppression state",
+      "Uncertainty reasons",
+      "Contributing modalities",
+      "Excluded modalities",
       "Timeline",
       "Final summary",
       "Safety boundaries",
