@@ -18,7 +18,7 @@ export function ObjectiveDashboardShell({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4">
+    <main className="flex min-h-screen w-full max-w-none flex-col gap-4 bg-slate-950 px-4 py-4">
       <header className="rounded-lg border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>

@@ -27,6 +27,7 @@ const PHASE4_SOURCE_FILES = [
   "app/(clinician)/clinician/objective/_lib/dashboardAccess.ts",
   "app/(clinician)/clinician/objective/_lib/phase4DemoScenarios.ts",
   "app/(clinician)/clinician/objective/_lib/phase4DemoPlayback.ts",
+  "app/(clinician)/clinician/objective/_lib/phase4DemoStream.ts",
   "app/(clinician)/clinician/objective/_lib/chartReadySignals.ts",
   "app/(clinician)/clinician/objective/_lib/qualityFeatureCards.ts",
   "app/(clinician)/clinician/objective/_lib/mlInterpretationCards.ts",
@@ -166,7 +167,8 @@ describe("Phase 4 console safety coverage", () => {
       "Objective Monitoring Console",
       "Scenario setup",
       "Playback controls",
-      "Live-looking signal previews",
+      "Signal visualization workspace",
+      "Stream inspector",
       "Processing pipeline",
       "Safety boundaries",
     ]) {
@@ -264,6 +266,7 @@ describe("Phase 4 console safety coverage", () => {
         /localStorage/,
         /sessionStorage/,
         /indexedDB/,
+        /\bcookies\s*\(/,
       ]) {
         expectNoMatch(content, pattern, relativePath);
       }
@@ -351,6 +354,7 @@ describe("Phase 4 console safety coverage", () => {
         "ObjectivePhase4ConsoleOverviewRail",
         "ObjectivePhase4DemoCockpit",
         "phase4DemoPlayback",
+        "phase4DemoStream",
         "PHASE4_DEMO_PLAYBACK_SCENARIOS",
         "phase4DemoScenarios",
         "PHASE4_DEMO_SCENARIOS",

@@ -51,12 +51,20 @@ describe("Phase 4 objective console shell", () => {
     "_lib",
     "phase4DemoPlayback.ts",
   );
+  const streamRuntime = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_lib",
+    "phase4DemoStream.ts",
+  );
 
   it("wires the existing clinician objective route to the interactive cockpit", () => {
     expect(fs.existsSync(page)).toBe(true);
     expect(fs.existsSync(consoleShell)).toBe(true);
     expect(fs.existsSync(demoCockpit)).toBe(true);
     expect(fs.existsSync(playbackRuntime)).toBe(true);
+    expect(fs.existsSync(streamRuntime)).toBe(true);
 
     const pageContent = read(page);
     const shellContent = read(consoleShell);
@@ -69,7 +77,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("renders required cockpit regions and safety framing", () => {
-    const combined = `${read(page)}\n${read(consoleShell)}\n${read(demoCockpit)}\n${read(playbackRuntime)}`;
+    const combined = `${read(page)}\n${read(consoleShell)}\n${read(demoCockpit)}\n${read(playbackRuntime)}\n${read(streamRuntime)}`;
 
     for (const required of [
       "Objective Monitoring Console",
@@ -86,20 +94,28 @@ describe("Phase 4 objective console shell", () => {
       "Local demo playback",
       "Scenario setup",
       "Playback controls",
-      "Live-looking signal previews",
-      "Session status",
+      "Playback speed",
+      "Scrubber",
+      "Signal visualization workspace",
+      "Session state",
       "Processing pipeline",
-      "Quality/readiness",
-      "Feature-window context",
-      "Interpretation context",
+      "Interpretation snapshot",
+      "Stream inspector",
+      "Recent frames",
       "Timeline",
       "Final summary",
       "Safety boundaries",
-      "ECG-like preview",
-      "GSR trend",
-      "PPG-like preview",
-      "Motion/activity context",
-      "Temperature/contact context",
+      "ECG display amplitude",
+      "Conductance trend",
+      "Pulse waveform",
+      "Movement magnitude",
+      "Temperature/contact delta",
+      "Source frame time",
+      "Signal quality",
+      "Time ticks",
+      "Latest value",
+      "Evidence annotation",
+      "Baseline/reference band",
       "Demo source",
       "Ingestion boundary",
       "Timing alignment",
@@ -109,16 +125,10 @@ describe("Phase 4 objective console shell", () => {
       "Bounded interpretation",
       "Clinician review",
       "Session summary",
-      "Heart-activity trend",
-      "Skin-conductance trend",
-      "Pulse-waveform context",
-      "Motion confound context",
-      "Safe interpretation label",
-      "Evidence level",
-      "Confidence",
-      "Uncertainty",
-      "Interpretable windows",
-      "Suppressed windows",
+      "Heart-activity display trend",
+      "Conductance slope",
+      "Pulse waveform stability",
+      "Movement magnitude window",
       "Signal quality distribution",
       "Modality availability",
       "Source-bound physiological evidence",
@@ -164,7 +174,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("does not introduce backend, live stream, Supabase, hardware, or persistence dependencies", () => {
-    const files = [page, consoleShell, demoCockpit, playbackRuntime];
+    const files = [page, consoleShell, demoCockpit, playbackRuntime, streamRuntime];
 
     for (const file of files) {
       const content = read(file);
@@ -182,6 +192,7 @@ describe("Phase 4 objective console shell", () => {
         /localStorage/,
         /sessionStorage/,
         /indexedDB/,
+        /\bcookies\s*\(/,
       ]) {
         expectNoMatch(content, pattern, file);
       }
@@ -189,7 +200,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("keeps Phase 4 cockpit copy free of forbidden clinical wording", () => {
-    const files = [page, consoleShell, demoCockpit, playbackRuntime];
+    const files = [page, consoleShell, demoCockpit, playbackRuntime, streamRuntime];
 
     for (const file of files) {
       const content = read(file).toLowerCase();
@@ -220,7 +231,7 @@ describe("Phase 4 objective console shell", () => {
   });
 
   it("does not expose raw sensor field names in the Phase 4 cockpit", () => {
-    const files = [page, consoleShell, demoCockpit, playbackRuntime];
+    const files = [page, consoleShell, demoCockpit, playbackRuntime, streamRuntime];
 
     for (const file of files) {
       const content = read(file);

@@ -60,6 +60,27 @@ function getButton(container: HTMLElement, name: string): HTMLButtonElement {
   return match;
 }
 
+function getInputByTestId(container: HTMLElement, testId: string): HTMLInputElement {
+  const match = container.querySelector(`[data-testid="${testId}"]`);
+
+  if (!(match instanceof HTMLInputElement)) {
+    throw new Error(`Missing input test id: ${testId}`);
+  }
+
+  return match;
+}
+
+function setInputValue(input: HTMLInputElement, value: string): void {
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  )?.set;
+
+  valueSetter?.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
 function expectRenderedText(container: HTMLElement, expected: string): void {
   expect(renderedText(container)).toContain(expected);
 }
@@ -86,20 +107,25 @@ describe("Phase 4 objective console acceptance regression", () => {
       "Runtime: Local demo playback",
       "Scenario setup",
       "Playback controls",
-      "Live-looking signal previews",
-      "ECG-like preview",
-      "GSR trend",
-      "PPG-like preview",
-      "Motion/activity context",
-      "Temperature/contact context",
-      "Session status",
+      "Playback speed",
+      "Scrubber",
+      "Signal visualization workspace",
+      "ECG display amplitude",
+      "Conductance trend",
+      "Pulse waveform",
+      "Movement magnitude",
+      "Temperature/contact delta",
+      "Session state",
       "Processing pipeline",
-      "Quality",
+      "Interpretation snapshot",
+      "Stream",
       "Features",
-      "Interpretation",
       "Timeline",
       "Summary",
       "Safety",
+      "Stream inspector",
+      "Current frame",
+      "Recent frames",
       "clinician_visible=true",
       "patient_visible=false",
       "chatbot_visible=false",
@@ -143,7 +169,7 @@ describe("Phase 4 objective console acceptance regression", () => {
       "Model context unavailable without failing open.",
     );
     expectRenderedText(container, "ml_unavailable");
-    expectRenderedText(container, "Model context is unavailable in the demo.");
+    expectRenderedText(container, "No fallback model conclusion is generated.");
 
     act(() => {
       getButton(container, "Motion/activity-like confound").click();
@@ -153,7 +179,7 @@ describe("Phase 4 objective console acceptance regression", () => {
       getByTestId(container, "phase4-selected-scenario-title").textContent,
     ).toBe("Motion/activity-like confound");
     expectRenderedText(container, "movement_activity_like_confound");
-    expectRenderedText(container, "Movement context limits confidence.");
+    expectRenderedText(container, "Movement magnitude spikes and limits interpretation confidence.");
 
     unmount();
   });
@@ -165,11 +191,10 @@ describe("Phase 4 objective console acceptance regression", () => {
     expect(getByTestId(container, "phase4-playback-status").textContent).toBe(
       "Ready",
     );
-    expect(getByTestId(container, "phase4-playback-progress").textContent).toBe(
-      "0%",
-    );
+    expect(getByTestId(container, "phase4-playback-progress").textContent).toBe("0%");
 
     act(() => {
+      getButton(container, "8x").click();
       getButton(container, "Start").click();
     });
 
@@ -178,11 +203,11 @@ describe("Phase 4 objective console acceptance regression", () => {
     );
 
     act(() => {
-      jest.advanceTimersByTime(2400);
+      jest.advanceTimersByTime(2100);
     });
 
     expect(getByTestId(container, "phase4-playback-progress").textContent).toBe(
-      "17%",
+      "13%",
     );
     expect(getByTestId(container, "phase4-current-stage").textContent).toBe(
       "Ingestion boundary",
@@ -194,6 +219,18 @@ describe("Phase 4 objective console acceptance regression", () => {
 
     expectRenderedText(container, "Demo source loaded");
     expectRenderedText(container, "Ingestion boundary checked");
+
+    const scrubber = getInputByTestId(container, "phase4-playback-scrubber");
+    act(() => {
+      setInputValue(scrubber, "120");
+    });
+
+    expect(getByTestId(container, "phase4-playback-time").textContent).toContain(
+      "02:00 / 03:00",
+    );
+    expect(getByTestId(container, "phase4-current-stage").textContent).toBe(
+      "Bounded interpretation",
+    );
 
     act(() => {
       getButton(container, "Pause").click();
@@ -218,9 +255,9 @@ describe("Phase 4 objective console acceptance regression", () => {
       getButton(container, "Summary").click();
     });
 
-    expectRenderedText(container, "Baseline-relative review is ready.");
-    expectRenderedText(container, "Interpretable windows");
-    expectRenderedText(container, "Suppressed windows");
+    expectRenderedText(container, "Baseline-relative review window is complete.");
+    expectRenderedText(container, "Visible session duration");
+    expectRenderedText(container, "Interpretable window coverage");
 
     unmount();
   });
@@ -229,34 +266,25 @@ describe("Phase 4 objective console acceptance regression", () => {
     const { container, unmount } = renderConsole();
 
     expect(getByTestId(container, "phase4-active-review-panel").textContent).toContain(
-      "Quality/readiness",
+      "Stream inspector",
     );
     expect(getByTestId(container, "phase4-active-review-panel").textContent).not.toContain(
-      "Feature-window context",
+      "Display-window feature summaries",
     );
 
     act(() => {
       getButton(container, "Features").click();
     });
     expect(getByTestId(container, "phase4-active-review-panel").textContent).toContain(
-      "Feature-window context",
+      "Display-window feature summaries",
     );
-    expectRenderedText(container, "Heart-activity trend");
-    expectRenderedText(container, "Skin-conductance trend");
-
-    act(() => {
-      getButton(container, "Interpretation").click();
-    });
-    expect(getByTestId(container, "phase4-active-review-panel").textContent).toContain(
-      "Interpretation context",
-    );
-    expectRenderedText(container, "Safe interpretation label");
-    expectRenderedText(container, "Uncertainty");
+    expectRenderedText(container, "Heart-activity display trend");
+    expectRenderedText(container, "Conductance slope");
 
     act(() => {
       getButton(container, "Summary").click();
     });
-    expectRenderedText(container, "Summary locked");
+    expectRenderedText(container, "Summary unlocks after review window completes");
 
     act(() => {
       getButton(container, "Safety").click();

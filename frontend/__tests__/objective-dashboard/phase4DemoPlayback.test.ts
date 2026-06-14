@@ -34,7 +34,7 @@ describe("Phase 4 demo playback runtime", () => {
     expect(getPhase4DemoProgressPercent(PHASE4_DEMO_DURATION_SECONDS + 10)).toBe(
       100,
     );
-    expect(getNextPhase4DemoElapsedSeconds(70)).toBe(
+    expect(getNextPhase4DemoElapsedSeconds(179, PHASE4_DEMO_DURATION_SECONDS, 8)).toBe(
       PHASE4_DEMO_DURATION_SECONDS,
     );
   });
@@ -46,7 +46,7 @@ describe("Phase 4 demo playback runtime", () => {
       elapsedSeconds: 12,
     });
 
-    expect(early.progressPercent).toBe(17);
+    expect(early.progressPercent).toBe(7);
     expect(early.pipelineStages.some((stage) => stage.status === "active")).toBe(
       true,
     );

@@ -78,19 +78,19 @@ export type Phase4DemoPlaybackSnapshot = Readonly<{
   summaryUnlocked: boolean;
 }>;
 
-export const PHASE4_DEMO_DURATION_SECONDS = 72;
-export const PHASE4_DEMO_TICK_SECONDS = 4;
+export const PHASE4_DEMO_DURATION_SECONDS = 180;
+export const PHASE4_DEMO_TICK_SECONDS = 1;
 
 export const PHASE4_DEMO_PIPELINE_STAGES = [
   { label: "Demo source", thresholdPercent: 0 },
-  { label: "Ingestion boundary", thresholdPercent: 12 },
-  { label: "Timing alignment", thresholdPercent: 24 },
-  { label: "Segment preparation", thresholdPercent: 36 },
-  { label: "Feature-window preparation", thresholdPercent: 48 },
-  { label: "Baseline-relative context", thresholdPercent: 60 },
-  { label: "Bounded interpretation", thresholdPercent: 72 },
-  { label: "Clinician review", thresholdPercent: 84 },
-  { label: "Session summary", thresholdPercent: 94 },
+  { label: "Ingestion boundary", thresholdPercent: 6 },
+  { label: "Timing alignment", thresholdPercent: 14 },
+  { label: "Segment preparation", thresholdPercent: 22 },
+  { label: "Feature-window preparation", thresholdPercent: 33 },
+  { label: "Baseline-relative context", thresholdPercent: 47 },
+  { label: "Bounded interpretation", thresholdPercent: 61 },
+  { label: "Clinician review", thresholdPercent: 75 },
+  { label: "Session summary", thresholdPercent: 89 },
 ] as const satisfies readonly Phase4DemoPipelineStage[];
 
 const BASE_ECG = [48, 50, 49, 78, 42, 48, 50, 49, 76, 43, 49, 51, 48, 75, 44, 49];
@@ -572,8 +572,12 @@ export function getPhase4DemoProgressPercent(
 export function getNextPhase4DemoElapsedSeconds(
   elapsedSeconds: number,
   durationSeconds = PHASE4_DEMO_DURATION_SECONDS,
+  playbackSpeed = 1,
 ): number {
-  return Math.min(elapsedSeconds + PHASE4_DEMO_TICK_SECONDS, durationSeconds);
+  return Math.min(
+    elapsedSeconds + PHASE4_DEMO_TICK_SECONDS * playbackSpeed,
+    durationSeconds,
+  );
 }
 
 export function getPhase4DemoPlaybackSnapshot({

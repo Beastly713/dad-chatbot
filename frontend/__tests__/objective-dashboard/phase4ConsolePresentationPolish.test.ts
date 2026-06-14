@@ -49,6 +49,13 @@ describe("Phase 4 console presentation polish", () => {
     "_lib",
     "phase4DemoPlayback.ts",
   );
+  const streamRuntime = appPath(
+    "(clinician)",
+    "clinician",
+    "objective",
+    "_lib",
+    "phase4DemoStream.ts",
+  );
 
   it("uses the interactive dark cockpit as the main console presentation", () => {
     const shellContent = read(shellFile);
@@ -59,14 +66,21 @@ describe("Phase 4 console presentation polish", () => {
     for (const required of [
       "bg-slate-950",
       "shadow-2xl",
-      "xl:grid-cols-[280px_minmax(0,1fr)_320px]",
+      "max-w-none",
+      "2xl:grid-cols-[320px_minmax(0,1fr)_360px]",
       "role=\"tablist\"",
-      "Live-looking signal previews",
+      "Signal visualization workspace",
+      "Stream inspector",
       "Playback controls",
+      "Playback speed",
+      "Demo playback scrubber",
       "Processing pipeline",
+      "Evidence annotation",
+      "Baseline/reference band",
       "Safety boundaries",
       "data-testid=\"phase4-demo-cockpit\"",
       "data-testid=\"phase4-playback-progress\"",
+      "data-testid=\"phase4-playback-scrubber\"",
       "data-testid=\"phase4-active-review-panel\"",
     ]) {
       expect(cockpitContent).toContain(required);
@@ -74,7 +88,7 @@ describe("Phase 4 console presentation polish", () => {
   });
 
   it("keeps the cockpit frontend-only while allowing only local demo playback timers", () => {
-    const combined = `${read(shellFile)}\n${read(demoCockpit)}\n${read(playbackRuntime)}`;
+    const combined = `${read(shellFile)}\n${read(demoCockpit)}\n${read(playbackRuntime)}\n${read(streamRuntime)}`;
 
     for (const pattern of [
       /\bfetch\s*\(/,
@@ -91,6 +105,7 @@ describe("Phase 4 console presentation polish", () => {
       /localStorage/,
       /sessionStorage/,
       /indexedDB/,
+      /\bcookies\s*\(/,
     ]) {
       expectNoMatch(combined, pattern, demoCockpit);
     }
@@ -103,7 +118,7 @@ describe("Phase 4 console presentation polish", () => {
   });
 
   it("keeps cockpit copy free of raw fields and unsafe clinical claims", () => {
-    const content = `${read(demoCockpit)}\n${read(playbackRuntime)}`.toLowerCase();
+    const content = `${read(demoCockpit)}\n${read(playbackRuntime)}\n${read(streamRuntime)}`.toLowerCase();
 
     for (const forbidden of [
       "ecg_raw",
