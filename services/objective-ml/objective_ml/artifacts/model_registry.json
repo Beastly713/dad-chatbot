@@ -1,0 +1,19 @@
+{
+  "active_model_version": "objective-ml-classical-tabular-v1",
+  "active_model_family": "gated_classical_ensemble",
+  "target": "baseline_relative_elevated_physiological_arousal_evidence",
+  "feature_vector_version": "objective-feature-vector-v1",
+  "preprocessing_version": "objective-preprocessing-v1",
+  "feature_schema_version": "objective-feature-window-foundation-v1",
+  "calibration_version": "dev_static_thresholds_v1",
+  "validation_status": "dev_only",
+  "db_write_enabled": false,
+  "patient_visible": false,
+  "chatbot_visible": false,
+  "clinician_visible": true,
+  "candidate_models": [
+    "classical_baseline_logistic_ordinal_v1",
+    "gradient_boosted_tree_candidate_v1"
+  ],
+  "model_card_path": "model_card_classical_v1.json"
+}

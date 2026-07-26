@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "noEmitOnError": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@dad-chatbot/objective-safety": ["../objective-safety/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "__tests__/**/*.ts"]
+}

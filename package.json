@@ -5,9 +5,12 @@
     "version": "0.0.1",
     "author": "Mayo Oshin",
     "license": "MIT",
+    "packageManager": "yarn@1.22.22",
     "workspaces": [
         "backend",
-        "frontend"
+        "frontend",
+        "packages/*",
+        "services/*"
     ],
     "scripts": {
         "build": "yarn run turbo:command build",
@@ -15,7 +18,24 @@
         "lint": "yarn run turbo:command lint",
         "lint:fix": "yarn run turbo:command lint:fix",
         "format": "yarn run turbo:command format",
-        "format:check": "yarn run turbo:command format:check"
+        "format:check": "yarn run turbo:command format:check",
+        "typecheck": "yarn run turbo:command typecheck",
+        "test": "yarn run turbo:command test",
+        "test:phase1": "yarn workspace backend test:phase1",
+        "test:phase2": "yarn workspace backend test:phase2",
+        "test:objective:simulator": "node scripts/objective/phase3-release-gate.mjs simulator",
+        "test:objective:ingest": "node scripts/objective/phase3-release-gate.mjs ingest",
+        "test:objective:features": "node scripts/objective/phase3-release-gate.mjs features",
+        "test:objective:ml": "node scripts/objective/phase3-release-gate.mjs ml",
+        "test:objective:interpretation": "node scripts/objective/phase3-release-gate.mjs interpretation",
+        "test:objective:rbac": "node scripts/objective/phase3-release-gate.mjs rbac",
+        "test:objective:dashboard": "node scripts/objective/phase3-release-gate.mjs dashboard",
+        "test:objective:safety": "node scripts/objective/phase3-release-gate.mjs safety",
+        "test:no-leaks": "node scripts/objective/phase3-release-gate.mjs no-leaks",
+        "test:phase4:console": "node scripts/objective/phase4-console-validation-gate.mjs",
+        "test:objective": "node scripts/objective/phase3-release-gate.mjs objective",
+        "test:phase3": "node scripts/objective/phase3-release-gate.mjs phase3",
+        "test:phase3:final": "node scripts/objective/phase3-final-release-gate.mjs"
     },
     "devDependencies": {
         "turbo": "latest"

@@ -1,0 +1,18 @@
+{
+  "name": "@dad-chatbot/objective-preprocessing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "jest --runInBand",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@dad-chatbot/objective-safety": "workspace:*",
+    "@dad-chatbot/objective-schemas": "workspace:*"
+  },
+  "devDependencies": {}
+}
