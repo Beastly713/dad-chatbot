@@ -30,7 +30,7 @@ const SUPPORTED_PROVIDERS = [
  */
 export async function loadChatModel(
   fullySpecifiedName: string,
-  temperature = 0.2,
+  temperature: number = 0.2,
 ): Promise<BaseChatModel> {
   const index = fullySpecifiedName.indexOf('/');
 

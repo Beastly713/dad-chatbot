@@ -1,4 +1,4 @@
-export type SubstanceId = "alcohol" | (string & Record<never, never>);
+export type SubstanceId = "alcohol" | (string & {});
 
 export type OrdinalLevel =
   | "none"

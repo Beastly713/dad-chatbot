@@ -9,12 +9,6 @@
       "lint": {
         "dependsOn": ["^lint"]
       },
-      "typecheck": {
-        "dependsOn": ["^typecheck"]
-      },
-      "test": {
-        "dependsOn": ["^test"]
-      },
       "format": {
         "dependsOn": ["^format"]
       }
