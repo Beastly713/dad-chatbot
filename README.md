@@ -1,298 +1,279 @@
-# AI PDF Chatbot & Agent Powered by LangChain and LangGraph
+# Recovery Support Assistant
 
-This monorepo is a customizable template example of an AI chatbot agent that "ingests" PDF documents, stores embeddings in a vector database (Supabase), and then answers user queries using OpenAI (or another LLM provider) utilising LangChain and LangGraph as orchestration frameworks.
+A safety-aware alcohol-recovery support application built with Next.js,
+LangChain, LangGraph, Supabase, and OpenRouter.
 
-This template is also an accompanying example to the book [Learning LangChain (O'Reilly)](https://www.oreilly.com/library/view/learning-langchain/9781098167271): Building AI and LLM applications with LangChain and LangGraph.
+The application is designed for supportive conversations about alcohol
+cravings, lapses, recovery, grounding, and safer next steps. It is not a
+clinician, therapist, emergency service, or medical device.
 
-> [!IMPORTANT]
-> This project is not actively maintained and is kept here for reference.
-> Please do not expect responses to new issues or pull requests.
+## What the application does
 
-**Here's what the Chatbot UI looks like:**
+- Classifies incoming messages with deterministic safety rules.
+- Uses fixed responses for urgent, medical, medication, detox, unsafe-alcohol,
+  prompt-injection, and out-of-scope requests.
+- Uses an approved internal alcohol-support knowledge base for safe-support
+  conversations.
+- Generates a response draft with an OpenRouter-hosted chat model only after
+  safety triage and approved retrieval.
+- Runs every user-visible response through a final rule-based safety guard.
+- Offers an optional, skippable subjective check-in for safe-support
+  conversations.
+- Displays approved support-source metadata when documents were retrieved.
 
-<img width="1096" alt="Screenshot 2025-02-20 at 05 39 55" src="https://github.com/user-attachments/assets/3a9ddea7-b718-476b-bdae-38839be20c12" />
+The assistant must not provide diagnosis, clinical scores, CIWA/withdrawal
+scoring, medication or dosage advice, detox instructions, treatment plans, or
+unsafe alcohol-use guidance.
 
-## Table of Contents
+## Architecture
 
-1. [Features](#features)
-2. [Architecture Overview](#architecture-overview)
-3. [Prerequisites](#prerequisites)
-4. [Installation](#installation)
-5. [Environment Variables](#environment-variables)
-   - [Frontend Variables](#frontend-variables)
-   - [Backend Variables](#backend-variables)
-6. [Local Development](#local-development)
-   - [Running the Backend](#running-the-backend)
-   - [Running the Frontend](#running-the-frontend)
-7. [Usage](#usage)
-   - [Uploading/Ingesting PDFs](#uploadingingesting-pdfs)
-   - [Asking Questions](#asking-questions)
-   - [Viewing Chat History](#viewing-chat-history)
-8. [Production Build & Deployment](#production-build--deployment)
-9. [Customizing the Agent](#customizing-the-agent)
-10. [Troubleshooting](#troubleshooting)
-11. [Next Steps](#next-steps)
+The main request and ingestion boundaries are:
 
----
+```mermaid
+flowchart LR
+    UI["Next.js chat UI"] -->|"POST /api/chat"| CHAT["Next.js chat route"]
+    CHAT -->|"LangGraph SDK run"| RETRIEVAL["retrieval_graph"]
+    RETRIEVAL -->|"guarded result"| CHAT
+    CHAT -->|"SSE response"| UI
 
-## Features
+    INGEST["/api/ingest"] --> PDF["PDFLoader"]
+    PDF --> INGESTION["ingestion_graph"]
+    INGESTION --> SUPABASE[("Supabase documents table")]
 
-- **Document Ingestion Graph**: Upload and parse PDFs into `Document` objects, then store vector embeddings into a vector database (we use Supabase in this example).
-- **Retrieval Graph**: Handle user questions, decide whether to retrieve documents or give a direct answer, then generate concise responses with references to the retrieved documents.
-- **Streaming Responses**: Real-time streaming of partial responses from the server to the client UI.
-- **LangGraph Integration**: Built using LangGraph’s state machine approach to orchestrate ingestion and retrieval, visualise your agentic workflow, and debug each step of the graph.  
-- **Next.js Frontend**: Allows file uploads, real-time chat, and easy extension with React components and Tailwind.
-
----
-
-## Architecture Overview
-
-```ascii
-┌─────────────────────┐    1. Upload PDFs    ┌───────────────────────────┐
-│Frontend (Next.js)   │ ────────────────────> │Backend (LangGraph)       │
-│ - React UI w/ chat  │                      │ - Ingestion Graph         │
-│ - Upload .pdf files │ <────────────────────┤   + Vector embedding via  │
-└─────────────────────┘    2. Confirmation   │     SupabaseVectorStore   │
-(storing embeddings in DB)
-
-┌─────────────────────┐    3. Ask questions  ┌───────────────────────────┐
-│Frontend (Next.js)   │ ────────────────────> │Backend (LangGraph)       │
-│ - Chat + SSE stream │                      │ - Retrieval Graph         │
-│ - Display sources   │ <────────────────────┤   + Chat model (OpenAI)   │
-└─────────────────────┘ 4. Streamed answers  └───────────────────────────┘
-
+    RETRIEVAL --> SUPABASE
+    RETRIEVAL --> OPENROUTER["OpenRouter chat model"]
 ```
-- **Supabase** is used as the vector store to store and retrieve relevant documents at query time.  
-- **OpenAI** (or other LLM providers) is used for language modeling.  
-- **LangGraph** orchestrates the "graph" steps for ingestion, routing, and generating responses.  
-- **Next.js** (React) powers the user interface for uploading PDFs and real-time chat.
 
-The system consists of:
-- **Backend**: A Node.js/TypeScript service that contains LangGraph agent "graphs" for:
-  - **Ingestion** (`src/ingestion_graph.ts`) - handles indexing/ingesting documents
-  - **Retrieval** (`src/retrieval_graph.ts`) - question-answering over the ingested documents
-  - **Configuration** (`src/shared/configuration.ts`) - handles configuration for the backend api including model providers and vector stores
-- **Frontend**: A Next.js/React app that provides a web UI for users to upload PDFs and chat with the AI.
----
+The retrieval graph itself is safety-gated before any external retrieval or
+model generation:
 
-## Prerequisites
+```mermaid
+flowchart TD
+    START(["User message or check-in response"])
+    TRIAGE["inputTriage<br/>deterministic safety classification"]
+    POLICY["policySelector<br/>select response policy"]
+    TEMPLATE["templateResponder<br/>fixed safe response"]
+    EXTRACT["subjectiveStateExtractor<br/>parse non-diagnostic support evidence"]
+    SAFETY{"Safety subflag present?"}
+    ESCALATE["subjectiveSafetyEscalation<br/>upgrade to template-only policy"]
+    REDUCE["subjectiveStateReducer<br/>merge state into thread"]
+    PLAN["subjectiveCheckInPlanner"]
+    CHECKIN{"Check-in needed?"}
+    REQUEST["checkInRequestBuilder<br/>optional skippable UI action"]
+    CONTROL["subjectivePolicyController<br/>derive response controls"]
+    RETRIEVE["retrieveDocuments<br/>approved internal alcohol KB only"]
+    GENERATE["generateSafeResponse<br/>OpenRouter draft"]
+    GUARD["finalSafetyGuard<br/>only guarded output is returned"]
+    END(["Assistant response"])
 
-1. **Node.js v18+** (we recommend Node v20).
-2. **Yarn** (or npm, but this monorepo is pre-configured with Yarn).
-3. **Supabase project** (if you plan to store embeddings in Supabase; see [Setting up Supabase](https://supabase.com/docs/guides/getting-started)).
-   - You will need:
-     - `SUPABASE_URL`
-     - `SUPABASE_SERVICE_ROLE_KEY`
-     - A table named `documents` and a function named `match_documents` for vector similarity search (see [LangChain documentation for guidance on setting up the tables](https://js.langchain.com/docs/integrations/vectorstores/supabase/)).
-4. **OpenAI API Key** (or another LLM provider’s key, supported by LangChain).
-5. **LangChain API Key** (free and optional, but highly recommended for debugging and tracing your LangChain and LangGraph applications). Learn more [here](https://docs.smith.langchain.com/administration/how_to_guides/organization_management/create_account_api_key)
+    START --> TRIAGE --> POLICY
+    POLICY -->|"template-only category"| TEMPLATE --> GUARD
+    POLICY -->|"safe-support category"| EXTRACT --> SAFETY
+    SAFETY -->|"yes"| ESCALATE --> TEMPLATE
+    SAFETY -->|"no"| REDUCE --> PLAN --> CHECKIN
+    CHECKIN -->|"yes"| REQUEST --> GUARD
+    CHECKIN -->|"no or submitted/skipped"| CONTROL --> RETRIEVE --> GENERATE --> GUARD
+    GUARD --> END
+```
 
----
+The backend exposes two LangGraph graphs through `backend/langgraph.json`:
+
+- `retrieval_graph` — the live alcohol-support conversation flow.
+- `ingestion_graph` — PDF parsing and vector-store ingestion for controlled
+  indexing workflows.
+
+The current chat UI uses the curated internal alcohol KB. The PDF ingestion
+endpoint remains available for developer-controlled indexing, but arbitrary
+uploaded PDFs are not used as the normal chat grounding source. Retrieval
+filters require all of the following metadata:
+
+```json
+{
+  "source": "internal_kb",
+  "substance": "alcohol",
+  "userVisible": true,
+  "approved": true,
+  "riskCategory": "alcohol_craving | lapse_or_relapse | general_support"
+}
+```
+
+## Repository layout
+
+```text
+backend/
+  src/retrieval_graph/       LangGraph conversation flow
+  src/ingestion_graph/       Document ingestion graph
+  src/safety/                Triage, policies, templates, final guard
+  src/subjective/            Check-in types, extraction, planning, reduction
+  src/kb/                    KB filters and alcohol-support seed documents
+  scripts/                   Developer utilities, including KB seeding
+
+frontend/
+  app/page.tsx               Chat interface
+  app/api/chat/              Chat proxy and SSE response route
+  app/api/ingest/            PDF ingestion route
+  components/                Chat, check-in, source, and UI components
+  lib/                       LangGraph, PDF, and check-in helpers
+
+docs/
+  Phase 1 and Phase 2 runbooks, acceptance cases, and live checklists
+```
+
+## Requirements
+
+- Node.js 18 or newer (Node.js 20 is recommended).
+- Corepack-enabled Yarn.
+- A LangGraph-compatible local or hosted backend runtime.
+- A Supabase project with:
+  - a `documents` table containing vector embeddings and metadata;
+  - a `match_documents` RPC/function for similarity search.
+- An OpenRouter API key.
+
+LangSmith tracing is optional. The Supabase vector-store setup is described in
+the [LangChain Supabase integration documentation](https://js.langchain.com/docs/integrations/vectorstores/supabase/).
 
 ## Installation
 
-1. **Clone** the repository:
-
-   ```bash
-   git clone https://github.com/mayooear/ai-pdf-chatbot-langchain.git
-   cd ai-pdf-chatbot-langchain
-   ```
-
-2.	Install dependencies (from the monorepo root):
-
-yarn install
-
-	3.	Configure environment variables in both backend and frontend. See .`env.example` files for details.
-
-## Environment Variables
-
-The project relies on environment variables to configure keys and endpoints. Each sub-project (backend and frontend) has its own .env.example. Copy these to .env and fill in your details.
-
-### Frontend Variables
-
-Create a .env file in frontend:
-
-`cp frontend/.env.example frontend/.env`
-
-```
-    NEXT_PUBLIC_LANGGRAPH_API_URL=http://localhost:2024
-    LANGCHAIN_API_KEY=your-langsmith-api-key-here # Optional: LangSmith API key
-    LANGGRAPH_INGESTION_ASSISTANT_ID=ingestion_graph
-    LANGGRAPH_RETRIEVAL_ASSISTANT_ID=retrieval_graph
-
-    LANGCHAIN_TRACING_V2=true # Optional: Enable LangSmith tracing
-
-    LANGCHAIN_PROJECT="pdf-chatbot" # Optional: LangSmith project name
-```
-
-### Backend Variables
-
-Create a .env file in backend:
-
-`cp backend/.env.example backend/.env`
-
-```
-    OPENAI_API_KEY=your-openai-api-key-here
-    SUPABASE_URL=your-supabase-url-here
-    SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key-here
-
-    LANGCHAIN_TRACING_V2=true # Optional: Enable LangSmith tracing
-
-    LANGCHAIN_PROJECT="pdf-chatbot" # Optional: LangSmith project name
-```
-
-**Explanation of Environment Variables:**
-
--   `NEXT_PUBLIC_LANGGRAPH_API_URL`: The URL where your LangGraph backend server is running.  Defaults to `http://localhost:2024` for local development. 
--   `LANGCHAIN_API_KEY`: Your LangSmith API key.  This is optional, but highly recommended for debugging and tracing your LangChain and LangGraph applications.
--   `LANGGRAPH_INGESTION_ASSISTANT_ID`: The ID of the LangGraph assistant for document ingestion. Default is `ingestion_graph`.
--   `LANGGRAPH_RETRIEVAL_ASSISTANT_ID`: The ID of the LangGraph assistant for question answering. Default is `retrieval_graph`.
--   `LANGCHAIN_TRACING_V2`:  Enable tracing to debug your application on the LangSmith platform.  Set to `true` to enable.
--   `LANGCHAIN_PROJECT`:  The name of your LangSmith project.
--   `OPENAI_API_KEY`: Your OpenAI API key.
--   `SUPABASE_URL`: Your Supabase URL.
--   `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key.
-
-
-
-## Local Development
-
-This monorepo uses Turborepo to manage both backend and frontend projects. You can run them separately for development.
-
-### Running the Backend
-
-1.	Navigate to backend:
+From the repository root:
 
 ```bash
-cd backend
+corepack enable
+corepack yarn install
 ```
 
-2.	Install dependencies (already done if you ran yarn install at the root).
+Create environment files for the backend and frontend as described below.
 
-3.	Start LangGraph in dev mode:
-
-```bash
-yarn langgraph:dev
-```
-
-This will launch a local LangGraph server on port 2024 by default. It should redirect you to a UI for interacting with the LangGraph server. [Langgraph studio guide](https://langchain-ai.github.io/langgraph/concepts/langgraph_studio/)
-
-### Running the Frontend
-
-1. Navigate to frontend:
-
-```bash
-cd frontend
-```
-
-2. Start the Next.js development server:
-
-```bash
-yarn dev
-```
-
-This will start a local Next.js development server (by default on port 3000).
-
-Access the UI in your browser at http://localhost:3000.
-
-## Usage
-
-Once both services are running:
-
-1. Use langgraph studio UI to interact with the LangGraph server and ensure the workflow is working as expected.
-
-2. Navigate to http://localhost:3000 to use the chatbot UI.
-
-3. Upload a small PDF document via the file upload button at the bottom of the page. This will trigger the ingestion graph to extract the text and store the embeddings in Supabase via the frontend `app/api/ingest` route.
-	
-4. After the ingestion is complete, ask questions in the chat input.
-
-5. The chatbot will trigger the retrieval graph via the `app/api/chat` route to retrieve the most relevant documents from the vector database and use the relevant PDF context (if needed) to answer.
-
-
-### Uploading/Ingesting PDFs
-
-Click on the paperclip icon in the chat input area.
-
-Select one or more PDF files to upload ensuring a total of max 5, each under 10MB (you can change these threshold values in the `app/api/ingest` route).
-
-The backend processes the PDFs, extracts text, and stores embeddings in Supabase (or your chosen vector store).
-
-### Asking Questions
-
-- Type your question in the chat input field.
-- Responses stream in real time. If the system retrieved documents, you’ll see a link to “View Sources” for each chunk of text used in the answer.
-
-### Viewing Chat History
-
-- The system creates a unique thread per user session (frontend). All messages are kept in the state for the session.
-- For demonstration purposes, the current example UI does not store the entire conversation beyond the local thread state and is not persistent across sessions. You can extend it to persist threads in a database. However, the "ingested documents" are persistent across sessions as they are stored in a vector database.
-
-
-## Deploying the Backend
-
-To deploy your LangGraph agent to a cloud service, you can either use LangGraph's cloud as per this [guide](https://langchain-ai.github.io/langgraph/cloud/quick_start/?h=studio#deploy-to-langgraph-cloud) or self-host it as per this [guide](https://langchain-ai.github.io/langgraph/how-tos/deploy-self-hosted/).
-
-## Deploying the Frontend
-The frontend can be deployed to any hosting that supports Next.js (Vercel, Netlify, etc.).
-
-Make sure to set relevant environment variables in your deployment environment. In particular, ensure `NEXT_PUBLIC_LANGGRAPH_API_URL` is pointing to your deployed backend URL.
-
-## Customizing the Agent
-
-You can customize the agent on the backend and frontend.
+## Environment variables
 
 ### Backend
 
-- In the configuration file `src/shared/configuration.ts`, you can change the default configs i.e. the vector store, k-value, and filter kwargs, shared between the ingestion and retrieval graphs. On the backend, configs can be used in each node of the graph workflow or from frontend, you can pass a config object into the graph's client.
-- You can adjust the prompts in the `src/retrieval_graph/prompts.ts` file.
-- If you'd like to change the retrieval model, you can do so in the `src/shared/retrieval.ts` file by adding another retriever function that encapsulates the desired client for the vector store and then updating the `makeRetriever` function to return the new retriever.
+Create `backend/.env`:
 
+```dotenv
+OPENROUTER_API_KEY=your-openrouter-api-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+
+# Optional LangSmith tracing
+LANGCHAIN_TRACING_V2=false
+LANGCHAIN_API_KEY=your-langsmith-api-key
+LANGCHAIN_PROJECT=recovery-support-assistant
+```
+
+The backend uses OpenRouter for both the default chat model and embeddings:
+
+- Chat model: `openrouter/openai/gpt-4o-mini`.
+- Embeddings: `openai/text-embedding-3-small` through the OpenRouter API.
+
+Keep `SUPABASE_SERVICE_ROLE_KEY` and all provider keys on the server. Do not
+expose them through `NEXT_PUBLIC_*` variables.
 
 ### Frontend
 
-- You can modify the file upload restrictions in the `app/api/ingest` route.
-- In `constants/graphConfigs.ts`, you can change the default config objects sent to the ingestion and retrieval graphs. These include the model provider, k value (no of source documents to retrieve), and retriever provider (i.e. vector store).
+Create `frontend/.env`:
 
+```dotenv
+NEXT_PUBLIC_LANGGRAPH_API_URL=http://localhost:2024
+LANGGRAPH_RETRIEVAL_ASSISTANT_ID=retrieval_graph
+LANGGRAPH_INGESTION_ASSISTANT_ID=ingestion_graph
 
-## Troubleshooting
-1. .env Not Loaded
-   - Make sure you copied .env.example to .env in both backend and frontend.
-   - Check your environment variables are correct and restart the dev server.
+# Optional API key for a hosted LangGraph/LangSmith deployment
+LANGCHAIN_API_KEY=your-langsmith-api-key
+```
 
-2. Supabase Vector Store
-   - Ensure you have configured your Supabase instance with the documents table and match_documents function. Check the official LangChain docs on Supabase integration.
+`NEXT_PUBLIC_LANGGRAPH_API_URL` must point to the LangGraph server reachable by
+the Next.js application. The chat route defaults to
+`http://localhost:2024`, while the server-side LangGraph client expects this
+variable to be present.
 
-3. OpenAI Errors
-   - Double-check your OPENAI_API_KEY. Make sure you have enough credits/quota.
+## Running locally
 
-4. LangGraph Not Running
-   - If yarn langgraph:dev fails, confirm your Node version is >= 18 and that you have all dependencies installed.
+Start the LangGraph backend in one terminal:
 
-5. Network Errors
-   - Frontend must point to the correct NEXT_PUBLIC_LANGGRAPH_API_URL. By default, it is http://localhost:2024.
+```bash
+cd backend
+corepack yarn langgraph:dev
+```
 
-## Next Steps
+This serves the graphs on the default LangGraph development port,
+`http://localhost:2024`.
 
-If you'd like to contribute to this project, feel free to open a pull request. Ensure it is well documented and includes tests in the test files.
+Start the Next.js frontend in a second terminal:
 
-If you'd like to learn more about building AI chatbots and agents with LangChain and LangGraph, check out the book [Learning LangChain (O'Reilly)](https://www.oreilly.com/library/view/learning-langchain/9781098167271/).
+```bash
+cd frontend
+corepack yarn dev
+```
 
-## Phase 2 — Subjective Check-in Layer
+Open [http://localhost:3000](http://localhost:3000).
 
-Phase 2 adds an optional, non-diagnostic subjective check-in layer for safe alcohol-support categories.
+## Seeding the internal knowledge base
 
-It can help tailor support based on user-reported current state, such as craving intensity, distress, coping confidence, alcohol availability, recent lapse context, and preferred support style.
+The repository includes 18 curated alcohol-support documents across the Phase 1
+and Phase 2 KB versions. Seed them into Supabase from `backend/`:
 
-Phase 2 does not add clinical scoring, diagnosis, CIWA-Ar, detox guidance, medication guidance, or treatment planning.
+```bash
+corepack yarn tsx scripts/seedAlcoholKb.ts
+```
 
-Key docs:
+The seed script removes existing `internal_kb` alcohol rows for the managed KB
+versions before inserting the current seed documents. Run it only against the
+intended Supabase project.
 
-- [Phase 2 Subjective Check-in Runbook](docs/PHASE2_SUBJECTIVE_CHECKIN_RUNBOOK.md)
-- [Phase 2 Live Checklist](docs/PHASE2_LIVE_CHECKLIST.md)
-- [Phase 2 Acceptance Cases](docs/PHASE2_ACCEPTANCE_CASES.md)
+## Using the application
 
-Required backend validation:
+The main UI is a chat experience. Example supported inputs include:
+
+- “I really want a drink right now.”
+- “I slipped and drank last night.”
+- “I had a long day and I’m worried I drink too much.”
+- “Help me choose one safe next step.”
+
+For safe-support messages, the assistant may present an optional inline
+check-in. The check-in can ask about current craving, distress, coping
+confidence, alcohol availability, recent use, social context, or preferred
+support style. It can always be skipped.
+
+Urgent or unsafe messages use deterministic templates and do not call the
+retriever or chat model. For example, requests involving self-harm, intoxicated
+driving, possible medical emergencies, withdrawal concerns, medication/dosage,
+alcohol-medication mixing, or hiding drinking are routed away from normal
+support generation.
+
+The frontend keeps the active thread ID and conversation state through the
+LangGraph thread. It does not provide application-level user authentication or
+its own conversation database.
+
+## PDF ingestion
+
+The backend still contains a controlled ingestion path:
+
+```text
+PDF upload
+→ frontend /api/ingest route
+→ PDFLoader extraction
+→ ingestion_graph
+→ Supabase embeddings
+```
+
+The route accepts up to five PDF files, each no larger than 10 MB. It creates a
+thread for the ingestion batch and attaches that thread ID to document
+metadata. The current retrieval graph intentionally restricts chat retrieval
+to approved internal alcohol-support documents, so this ingestion path should
+be treated as developer/indexing infrastructure rather than a user-uploaded
+document chat feature.
+
+## Validation
+
+From the repository root:
+
+```bash
+corepack yarn build
+corepack yarn lint
+corepack yarn format:check
+```
+
+Backend deterministic Phase 1 and Phase 2 validation:
 
 ```bash
 cd backend
@@ -301,10 +282,67 @@ corepack yarn test:phase2
 corepack yarn tsc --noEmit
 ```
 
-Required frontend validation:
+Run the complete backend Jest suite with:
 
 ```bash
-cd frontend
-corepack yarn lint
-corepack yarn build
+corepack yarn test
 ```
+
+Some backend integration cases are environment-gated and require live
+Supabase/provider credentials. The frontend ingestion integration suite expects
+a running Next.js server at `http://localhost:3000`.
+
+## Deployment
+
+Deploy the LangGraph backend using the LangGraph hosting/self-hosting approach
+appropriate for your environment, then deploy the Next.js frontend to a
+Next.js-compatible host.
+
+Configure at minimum:
+
+- Backend: `OPENROUTER_API_KEY`, `SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`.
+- Frontend: `NEXT_PUBLIC_LANGGRAPH_API_URL`,
+  `LANGGRAPH_RETRIEVAL_ASSISTANT_ID`.
+
+Verify that the frontend can reach the deployed LangGraph API and that provider
+and Supabase secrets are never bundled into the browser.
+
+## Development guidance
+
+Safety behavior is intentionally centralized:
+
+- Modify category detection in `backend/src/safety/triage.ts`.
+- Modify category policies in `backend/src/safety/policies.ts`.
+- Modify fixed responses in `backend/src/safety/templates.ts`.
+- Modify generated-output protections in `backend/src/safety/finalGuard.ts`.
+- Modify subjective extraction and state reduction in
+  `backend/src/subjective/`.
+- Modify the safe-response prompt in `backend/src/retrieval_graph/prompts.ts`.
+- Modify KB content in `backend/src/kb/seed/` and keep its metadata aligned with
+  the retrieval filters.
+
+Any safety change should include corresponding deterministic tests and should
+preserve these invariants:
+
+1. Template-only categories never call Supabase or the LLM.
+2. Structured subjective input can escalate safety but never downgrade danger.
+3. Only approved internal alcohol KB documents are retrieved for safe support.
+4. Every user-visible response passes through `finalGuard`.
+5. The product does not introduce diagnosis, clinical scoring, detox guidance,
+   medication advice, or unsafe alcohol-use instructions.
+
+Additional operational guidance is available in:
+
+- [Phase 1 stabilization runbook](docs/PHASE1_STABILIZATION_RUNBOOK.md)
+- [Phase 1 live RAG checklist](docs/PHASE1_LIVE_RAG_CHECKLIST.md)
+- [Phase 2 subjective check-in runbook](docs/PHASE2_SUBJECTIVE_CHECKIN_RUNBOOK.md)
+- [Phase 2 live checklist](docs/PHASE2_LIVE_CHECKLIST.md)
+- [Phase 2 acceptance cases](docs/PHASE2_ACCEPTANCE_CASES.md)
+
+## Safety notice
+
+This project is an engineering reference implementation, not medical advice or
+emergency support. If someone may be in immediate danger or experiencing a
+medical emergency, contact local emergency services or seek urgent real-world
+help.
